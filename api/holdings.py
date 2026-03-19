@@ -172,12 +172,19 @@ def get_holdings_data():
     tickers = [h["ticker"] for h in DGRO_HOLDINGS]
     quotes  = {}
 
-    with ThreadPoolExecutor(max_workers=25) as executor:
-        futures = {executor.submit(fetch_stooq, t): t for t in tickers}
-        for future in as_completed(futures):
-            ticker, data = future.result()
-            if data:
-                quotes[ticker] = data
+    # Process in batches to stay under Stooq's ~25 concurrent connection limit
+    batch_size = 15
+    for batch_start in range(0, len(tickers), batch_size):
+        batch = tickers[batch_start:batch_start + batch_size]
+        with ThreadPoolExecutor(max_workers=batch_size) as executor:
+            futures = {executor.submit(fetch_stooq, t): t for t in batch}
+            for future in as_completed(futures):
+                ticker, data = future.result()
+                if data:
+                    quotes[ticker] = data
+        # Small pause between batches to avoid Stooq rate-limiting
+        if batch_start + batch_size < len(tickers):
+            time.sleep(0.3)
 
     print(f"Fetched {len(quotes)}/{len(tickers)} tickers from Stooq")
 
