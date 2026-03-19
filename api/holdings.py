@@ -1,8 +1,10 @@
 # Vercel Python Serverless Function — /api/holdings
-# Uses Yahoo Finance v7 batch quote API with browser-like headers.
-# Fetches all 100 tickers in 2 batch requests instead of 100 individual ones.
+# Uses Stooq free historical data API (no auth, no IP blocking).
+# Fetches 1 year of daily OHLCV for each ticker in parallel.
 from http.server import BaseHTTPRequestHandler
-import json, time, urllib.request, urllib.parse
+import json, time, urllib.request
+from datetime import date, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # DGRO Top 100 Holdings (source: iShares, approximate weights)
 DGRO_HOLDINGS = [
@@ -112,55 +114,54 @@ DGRO_HOLDINGS = [
 _cache = {"data": None, "timestamp": 0}
 CACHE_DURATION = 600  # 10 minutes
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/122.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://finance.yahoo.com/",
-    "Origin": "https://finance.yahoo.com",
-}
 
-FIELDS = "regularMarketPrice,fiftyTwoWeekLow,fiftyTwoWeekHigh,trailingAnnualDividendYield,trailingAnnualDividendRate"
-
-
-def fetch_batch(tickers_batch):
-    """Fetch quotes for a batch of tickers from Yahoo Finance v7 API."""
-    symbols = ",".join(tickers_batch)
-    params = urllib.parse.urlencode({
-        "symbols": symbols,
-        "fields": FIELDS,
-        "formatted": "false",
-        "lang": "en-US",
-        "region": "US",
-    })
-    url = f"https://query1.finance.yahoo.com/v7/finance/quote?{params}"
+def fetch_stooq(ticker):
+    """Fetch 1 year of daily closes from Stooq for a US-listed ticker."""
+    d2 = date.today().strftime("%Y%m%d")
+    d1 = (date.today() - timedelta(days=366)).strftime("%Y%m%d")
+    stooq_sym = ticker.lower() + ".us"
+    url = (
+        f"https://stooq.com/q/d/l/?s={stooq_sym}&i=d"
+        f"&d1={d1}&d2={d2}"
+    )
     try:
-        req = urllib.request.Request(url, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=25) as resp:
-            body = resp.read().decode("utf-8")
-        data = json.loads(body)
-        quotes = data.get("quoteResponse", {}).get("result", [])
-        print(f"Batch {tickers_batch[0]}..{tickers_batch[-1]}: got {len(quotes)} quotes, status={resp.status}")
-        return {q["symbol"]: q for q in quotes}
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            text = resp.read().decode("utf-8").strip()
+
+        lines = text.split("\n")
+        if len(lines) < 2:
+            print(f"{ticker}: no data rows")
+            return ticker, None
+
+        # CSV header: Date,Open,High,Low,Close,Volume
+        closes = []
+        for line in lines[1:]:
+            parts = line.split(",")
+            if len(parts) >= 5:
+                try:
+                    closes.append(float(parts[4]))
+                except ValueError:
+                    pass
+
+        if not closes:
+            print(f"{ticker}: could not parse closes")
+            return ticker, None
+
+        price  = closes[-1]
+        low52  = min(closes)
+        high52 = max(closes)
+        return ticker, {
+            "price":            round(price,  2),
+            "fiftyTwoWeekLow":  round(low52,  2),
+            "fiftyTwoWeekHigh": round(high52, 2),
+        }
     except Exception as e:
-        print(f"fetch_batch error for {tickers_batch[0]}..{tickers_batch[-1]}: {e}")
-        # Try fallback host
-        try:
-            url2 = url.replace("query1.finance.yahoo.com", "query2.finance.yahoo.com")
-            req2 = urllib.request.Request(url2, headers=HEADERS)
-            with urllib.request.urlopen(req2, timeout=25) as resp2:
-                body2 = resp2.read().decode("utf-8")
-            data2 = json.loads(body2)
-            quotes2 = data2.get("quoteResponse", {}).get("result", [])
-            print(f"Fallback batch: got {len(quotes2)} quotes")
-            return {q["symbol"]: q for q in quotes2}
-        except Exception as e2:
-            print(f"fallback error: {e2}")
-            return {}
+        print(f"{ticker} stooq error: {e}")
+        return ticker, None
 
 
 def get_holdings_data():
@@ -168,43 +169,39 @@ def get_holdings_data():
     if _cache["data"] and (now - _cache["timestamp"]) < CACHE_DURATION:
         return _cache["data"], _cache["timestamp"]
 
-    tickers_list = [h["ticker"] for h in DGRO_HOLDINGS]
+    tickers = [h["ticker"] for h in DGRO_HOLDINGS]
+    quotes  = {}
 
-    # Split into batches of 50 (2 requests for 100 tickers)
-    quotes = {}
-    batch_size = 50
-    for i in range(0, len(tickers_list), batch_size):
-        batch = tickers_list[i:i + batch_size]
-        batch_quotes = fetch_batch(batch)
-        quotes.update(batch_quotes)
+    with ThreadPoolExecutor(max_workers=25) as executor:
+        futures = {executor.submit(fetch_stooq, t): t for t in tickers}
+        for future in as_completed(futures):
+            ticker, data = future.result()
+            if data:
+                quotes[ticker] = data
 
-    print(f"Total quotes fetched: {len(quotes)}")
+    print(f"Fetched {len(quotes)}/{len(tickers)} tickers from Stooq")
 
     results = []
     for i, holding in enumerate(DGRO_HOLDINGS):
         ticker = holding["ticker"]
-        q = quotes.get(ticker, {})
-
-        price  = q.get("regularMarketPrice")
+        q      = quotes.get(ticker, {})
+        price  = q.get("price")
         low52  = q.get("fiftyTwoWeekLow")
         high52 = q.get("fiftyTwoWeekHigh")
-        dy     = q.get("trailingAnnualDividendYield")
-
         variance = (
             round((price - low52) / low52 * 100, 2)
             if price and low52 and low52 > 0
             else None
         )
-
         results.append({
             "rank":            i + 1,
             "ticker":          ticker,
             "name":            holding["name"],
             "weight":          holding["weight"],
-            "price":           round(price, 2)  if price  is not None else None,
-            "yield":           round(dy * 100, 2) if dy is not None else None,
-            "fiftyTwoWeekLow": round(low52,  2)  if low52  is not None else None,
-            "fiftyTwoWeekHigh":round(high52, 2)  if high52 is not None else None,
+            "price":           price,
+            "yield":           None,   # Stooq doesn't provide yield; future enhancement
+            "fiftyTwoWeekLow": low52,
+            "fiftyTwoWeekHigh":high52,
             "varianceFromLow": variance,
         })
 
