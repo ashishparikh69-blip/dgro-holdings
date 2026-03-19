@@ -1,8 +1,8 @@
 # Vercel Python Serverless Function — /api/holdings
-# Uses yfinance bulk download (single call for all tickers) to avoid Yahoo Finance IP blocks.
+# Uses Yahoo Finance v7 batch quote API with browser-like headers.
+# Fetches all 100 tickers in 2 batch requests instead of 100 individual ones.
 from http.server import BaseHTTPRequestHandler
-import json, time
-import yfinance as yf
+import json, time, urllib.request, urllib.parse
 
 # DGRO Top 100 Holdings (source: iShares, approximate weights)
 DGRO_HOLDINGS = [
@@ -112,6 +112,56 @@ DGRO_HOLDINGS = [
 _cache = {"data": None, "timestamp": 0}
 CACHE_DURATION = 600  # 10 minutes
 
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/122.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://finance.yahoo.com/",
+    "Origin": "https://finance.yahoo.com",
+}
+
+FIELDS = "regularMarketPrice,fiftyTwoWeekLow,fiftyTwoWeekHigh,trailingAnnualDividendYield,trailingAnnualDividendRate"
+
+
+def fetch_batch(tickers_batch):
+    """Fetch quotes for a batch of tickers from Yahoo Finance v7 API."""
+    symbols = ",".join(tickers_batch)
+    params = urllib.parse.urlencode({
+        "symbols": symbols,
+        "fields": FIELDS,
+        "formatted": "false",
+        "lang": "en-US",
+        "region": "US",
+    })
+    url = f"https://query1.finance.yahoo.com/v7/finance/quote?{params}"
+    try:
+        req = urllib.request.Request(url, headers=HEADERS)
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            body = resp.read().decode("utf-8")
+        data = json.loads(body)
+        quotes = data.get("quoteResponse", {}).get("result", [])
+        print(f"Batch {tickers_batch[0]}..{tickers_batch[-1]}: got {len(quotes)} quotes, status={resp.status}")
+        return {q["symbol"]: q for q in quotes}
+    except Exception as e:
+        print(f"fetch_batch error for {tickers_batch[0]}..{tickers_batch[-1]}: {e}")
+        # Try fallback host
+        try:
+            url2 = url.replace("query1.finance.yahoo.com", "query2.finance.yahoo.com")
+            req2 = urllib.request.Request(url2, headers=HEADERS)
+            with urllib.request.urlopen(req2, timeout=25) as resp2:
+                body2 = resp2.read().decode("utf-8")
+            data2 = json.loads(body2)
+            quotes2 = data2.get("quoteResponse", {}).get("result", [])
+            print(f"Fallback batch: got {len(quotes2)} quotes")
+            return {q["symbol"]: q for q in quotes2}
+        except Exception as e2:
+            print(f"fallback error: {e2}")
+            return {}
+
 
 def get_holdings_data():
     now = time.time()
@@ -119,69 +169,27 @@ def get_holdings_data():
         return _cache["data"], _cache["timestamp"]
 
     tickers_list = [h["ticker"] for h in DGRO_HOLDINGS]
-    tickers_str  = " ".join(tickers_list)
 
-    # --- Bulk price + 52-week range via single yf.download() call ---
-    try:
-        raw = yf.download(
-            tickers_str,
-            period="1y",
-            auto_adjust=True,
-            progress=False,
-            threads=True,
-        )
-        # raw.columns is a MultiIndex (field, ticker) when >1 ticker
-        close = raw["Close"] if "Close" in raw.columns.get_level_values(0) else raw
-    except Exception as e:
-        print(f"yf.download error: {e}")
-        close = None
+    # Split into batches of 50 (2 requests for 100 tickers)
+    quotes = {}
+    batch_size = 50
+    for i in range(0, len(tickers_list), batch_size):
+        batch = tickers_list[i:i + batch_size]
+        batch_quotes = fetch_batch(batch)
+        quotes.update(batch_quotes)
 
-    # --- Dividend yield via fast_info (one request per ticker, parallel) ---
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    print(f"Total quotes fetched: {len(quotes)}")
 
-    def fetch_yield(ticker):
-        try:
-            fi = yf.Ticker(ticker).fast_info
-            dy = getattr(fi, "three_month_average_volume", None)  # placeholder probe
-            # Try dividendYield from summary_detail endpoint (lighter than full info)
-            tk_obj = yf.Ticker(ticker)
-            dy = None
-            try:
-                dy = tk_obj.info.get("dividendYield")
-            except Exception:
-                pass
-            return ticker, dy
-        except Exception:
-            return ticker, None
-
-    yields = {}
-    try:
-        with ThreadPoolExecutor(max_workers=20) as ex:
-            futs = {ex.submit(fetch_yield, t): t for t in tickers_list}
-            for f in as_completed(futs):
-                t, dy = f.result()
-                yields[t] = dy
-    except Exception as e:
-        print(f"yield fetch error: {e}")
-
-    # --- Build results ---
     results = []
     for i, holding in enumerate(DGRO_HOLDINGS):
         ticker = holding["ticker"]
-        price = low52 = high52 = None
+        q = quotes.get(ticker, {})
 
-        if close is not None:
-            try:
-                col = close[ticker]
-                col = col.dropna()
-                if not col.empty:
-                    price = float(round(col.iloc[-1], 2))
-                    low52 = float(round(col.min(), 2))
-                    high52 = float(round(col.max(), 2))
-            except Exception as e:
-                print(f"parse error {ticker}: {e}")
+        price  = q.get("regularMarketPrice")
+        low52  = q.get("fiftyTwoWeekLow")
+        high52 = q.get("fiftyTwoWeekHigh")
+        dy     = q.get("trailingAnnualDividendYield")
 
-        dy = yields.get(ticker)
         variance = (
             round((price - low52) / low52 * 100, 2)
             if price and low52 and low52 > 0
@@ -193,10 +201,10 @@ def get_holdings_data():
             "ticker":          ticker,
             "name":            holding["name"],
             "weight":          holding["weight"],
-            "price":           price,
-            "yield":           round(dy, 4) if dy else None,
-            "fiftyTwoWeekLow": low52,
-            "fiftyTwoWeekHigh":high52,
+            "price":           round(price, 2)  if price  is not None else None,
+            "yield":           round(dy * 100, 2) if dy is not None else None,
+            "fiftyTwoWeekLow": round(low52,  2)  if low52  is not None else None,
+            "fiftyTwoWeekHigh":round(high52, 2)  if high52 is not None else None,
             "varianceFromLow": variance,
         })
 
@@ -225,7 +233,10 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         except Exception as e:
             import traceback
-            body = json.dumps({"error": str(e), "trace": traceback.format_exc()}).encode("utf-8")
+            body = json.dumps({
+                "error": str(e),
+                "trace": traceback.format_exc()
+            }).encode("utf-8")
             self.send_response(500)
             self.send_header("Content-Type", "application/json")
             self.end_headers()

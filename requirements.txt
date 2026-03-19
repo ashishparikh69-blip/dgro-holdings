@@ -1,1 +1,1 @@
-yfinance==0.2.54
+# No third-party dependencies needed — using urllib (stdlib) for Yahoo Finance v7 API
