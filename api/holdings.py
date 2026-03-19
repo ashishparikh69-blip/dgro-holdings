@@ -1,8 +1,8 @@
 # Vercel Python Serverless Function — /api/holdings
-# Uses Stooq free historical data API (no auth, no IP blocking).
-# Fetches 1 year of daily OHLCV for each ticker in parallel.
+# Price/52W data from Stooq (no auth, no cloud IP blocking).
+# Dividend yield from Yahoo Finance v7 via cookie+crumb session.
 from http.server import BaseHTTPRequestHandler
-import json, time, urllib.request
+import json, time, urllib.request, urllib.parse, http.cookiejar
 from datetime import date, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -162,6 +162,63 @@ def fetch_stooq(ticker):
         return ticker, None
 
 
+def fetch_yields(tickers):
+    """
+    Fetch trailing dividend yields from Yahoo Finance v7 using a
+    cookie+crumb session. Returns {ticker: yield_pct} or {} on failure.
+    """
+    try:
+        jar    = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(jar)
+        )
+        opener.addheaders = [
+            ("User-Agent",
+             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+             "AppleWebKit/537.36 (KHTML, like Gecko) "
+             "Chrome/122.0.0.0 Safari/537.36"),
+            ("Accept", "text/html,application/json,*/*"),
+            ("Accept-Language", "en-US,en;q=0.9"),
+        ]
+
+        # Step 1: prime the cookie jar
+        opener.open("https://fc.yahoo.com/", timeout=10)
+
+        # Step 2: get crumb
+        r = opener.open(
+            "https://query2.finance.yahoo.com/v1/test/getcrumb",
+            timeout=10
+        )
+        crumb = r.read().decode().strip()
+        if not crumb or len(crumb) > 20:
+            print(f"Bad crumb: {crumb[:40]}")
+            return {}
+        print(f"Got crumb: {crumb}")
+
+        # Step 3: batch quote request in chunks of 50
+        yields = {}
+        for i in range(0, len(tickers), 50):
+            batch   = tickers[i:i + 50]
+            params  = urllib.parse.urlencode({
+                "symbols":   ",".join(batch),
+                "fields":    "trailingAnnualDividendYield",
+                "formatted": "false",
+                "crumb":     crumb,
+            })
+            url = f"https://query2.finance.yahoo.com/v7/finance/quote?{params}"
+            resp = opener.open(url, timeout=15)
+            data = json.loads(resp.read().decode())
+            for q in data.get("quoteResponse", {}).get("result", []):
+                dy = q.get("trailingAnnualDividendYield")
+                if dy is not None:
+                    yields[q["symbol"]] = round(dy * 100, 2)
+        print(f"Fetched yields for {len(yields)} tickers")
+        return yields
+    except Exception as e:
+        print(f"yield fetch error: {e}")
+        return {}
+
+
 def get_holdings_data():
     now = time.time()
     if _cache["data"] and (now - _cache["timestamp"]) < CACHE_DURATION:
@@ -187,6 +244,9 @@ def get_holdings_data():
 
     print(f"Fetched {len(quotes)}/{len(tickers)} tickers from Stooq")
 
+    # Fetch yields in parallel with the last Stooq batch already done
+    yields = fetch_yields(tickers)
+
     results = []
     for i, holding in enumerate(DGRO_HOLDINGS):
         ticker = holding["ticker"]
@@ -205,7 +265,7 @@ def get_holdings_data():
             "name":            holding["name"],
             "weight":          holding["weight"],
             "price":           price,
-            "yield":           None,   # Stooq doesn't provide yield; future enhancement
+            "yield":           yields.get(ticker),
             "fiftyTwoWeekLow": low52,
             "fiftyTwoWeekHigh":high52,
             "varianceFromLow": variance,
