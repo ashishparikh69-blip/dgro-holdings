@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import flask\")",
+      "Bash(python3 -c \"import yfinance\")",
+      "Bash(pip3 install:*)",
+      "Bash(python3 -c \":*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(/usr/local/bin/node --version)",
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(echo \"$PATH\")",
+      "Bash(ls /Users/ashishparikh/.*rc)",
+      "Bash(source /Users/ashishparikh/.zshrc)",
+      "Bash(brew install:*)",
+      "Bash(curl -fsSL https://nodejs.org/dist/v20.11.0/node-v20.11.0-darwin-arm64.tar.gz -o /tmp/node.tar.gz)",
+      "Bash(tar -xzf /tmp/node.tar.gz -C /tmp/)",
+      "Read(//tmp/node-v20.11.0-darwin-arm64/**)",
+      "Bash(export PATH=\"/tmp/node-v20.11.0-darwin-arm64/bin:$PATH\")",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const yf = require\\(''yahoo-finance2''\\).default; yf.quote\\(''AAPL'', {fields:[''regularMarketPrice'',''fiftyTwoWeekLow'',''fiftyTwoWeekHigh'',''trailingAnnualDividendYield'']}\\).then\\(r => console.log\\(JSON.stringify\\(r,null,2\\)\\)\\).catch\\(console.error\\)\")",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\(''/Users/ashishparikh/DRGOstocks/node_modules/yahoo-finance2/package.json''\\)\\); print\\(json.dumps\\({k:d[k] for k in [''main'',''module'',''exports'',''version'',''type''] if k in d}, indent=2\\)\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(node --input-type=module:*)",
+      "Bash(python3 -c \"print\\(open\\(''/Users/ashishparikh/DRGOstocks/node_modules/yahoo-finance2/esm/src/lib/getCrumb.js''\\).read\\(\\)[:1000]\\)\")",
+      "Bash(node test.mjs)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

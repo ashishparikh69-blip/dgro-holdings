@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DGRO Top 100 Holdings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1923;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1a2634, #243447);
+      padding: 24px 32px;
+      border-bottom: 2px solid #2d4a5e;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    header h1 span { color: #4fc3f7; }
+    .subtitle {
+      color: #8899aa;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 32px;
+      background: #162028;
+      border-bottom: 1px solid #1e3040;
+      font-size: 13px;
+      color: #6688aa;
+    }
+    .meta-bar .status { display: flex; align-items: center; gap: 8px; }
+    .meta-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }
+    .meta-bar .dot.loading { background: #ff9800; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .search-bar {
+      padding: 12px 32px;
+      background: #162028;
+    }
+    .search-bar input {
+      width: 100%;
+      max-width: 400px;
+      padding: 8px 14px;
+      border: 1px solid #2d4a5e;
+      border-radius: 6px;
+      background: #1a2634;
+      color: #e0e0e0;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-bar input:focus { border-color: #4fc3f7; }
+    .table-container {
+      overflow-x: auto;
+      padding: 0 16px 32px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    thead th {
+      background: #1a2634;
+      padding: 12px 14px;
+      text-align: right;
+      font-weight: 600;
+      color: #8899aa;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #2d4a5e;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    thead th:first-child,
+    thead th:nth-child(2),
+    thead th:nth-child(3) { text-align: left; }
+    thead th:hover { color: #4fc3f7; }
+    thead th .sort-arrow { margin-left: 4px; font-size: 10px; }
+    tbody tr {
+      border-bottom: 1px solid #1e3040;
+      transition: background 0.15s;
+    }
+    tbody tr:hover { background: #1a2e3e; }
+    td {
+      padding: 10px 14px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    td:first-child { text-align: center; color: #6688aa; width: 50px; }
+    td:nth-child(2) {
+      text-align: left;
+      font-weight: 700;
+      color: #4fc3f7;
+    }
+    td:nth-child(3) { text-align: left; color: #aabbcc; }
+    .range-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .range-track {
+      width: 80px;
+      height: 6px;
+      background: #2d4a5e;
+      border-radius: 3px;
+      position: relative;
+    }
+    .range-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4fc3f7;
+      top: -2px;
+      transform: translateX(-50%);
+    }
+    .variance-cell {
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      display: inline-block;
+      min-width: 70px;
+      text-align: center;
+    }
+    .yield-cell { color: #81c784; }
+    .price-cell { color: #ffffff; font-weight: 600; }
+    .loading-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 0;
+      gap: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #2d4a5e;
+      border-top-color: #4fc3f7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg { color: #ef5350; padding: 40px; text-align: center; }
+    .weight-bar {
+      display: inline-block;
+      height: 4px;
+      background: #4fc3f7;
+      border-radius: 2px;
+      margin-left: 8px;
+      vertical-align: middle;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>DGRO</span> Top 100 Holdings</h1>
+    <div class="subtitle">iShares Core Dividend Growth ETF &mdash; Live Market Data</div>
+  </header>
+  <div class="meta-bar">
+    <div class="status">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Loading...</span>
+    </div>
+    <div id="lastUpdated"></div>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search by ticker or company name...">
+  </div>
+  <div class="table-container">
+    <div id="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <div style="color: #6688aa;">Fetching live market data for 100 holdings...</div>
+    </div>
+    <table id="holdingsTable" style="display:none;">
+      <thead>
+        <tr>
+          <th data-col="rank"># <span class="sort-arrow"></span></th>
+          <th data-col="ticker">Ticker <span class="sort-arrow"></span></th>
+          <th data-col="name">Company <span class="sort-arrow"></span></th>
+          <th data-col="weight">Weight% <span class="sort-arrow"></span></th>
+          <th data-col="price">Price <span class="sort-arrow"></span></th>
+          <th data-col="yield">Yield% <span class="sort-arrow"></span></th>
+          <th data-col="fiftyTwoWeekLow">52W Low <span class="sort-arrow"></span></th>
+          <th data-col="fiftyTwoWeekHigh">52W High <span class="sort-arrow"></span></th>
+          <th data-col="range">52W Range</th>
+          <th data-col="varianceFromLow">Var. from Low <span class="sort-arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let holdingsData = [];
+    let sortCol = 'rank';
+    let sortAsc = true;
+
+    async function fetchData() {
+      document.getElementById('statusDot').className = 'dot loading';
+      document.getElementById('statusText').textContent = 'Fetching data...';
+      try {
+        const res = await fetch('/api/holdings');
+        const json = await res.json();
+        holdingsData = json.holdings;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('holdingsTable').style.display = '';
+        document.getElementById('statusDot').className = 'dot';
+        document.getElementById('statusText').textContent = 'Live';
+        document.getElementById('lastUpdated').textContent =
+          'Last updated: ' + new Date(json.lastUpdated).toLocaleTimeString();
+        renderTable();
+      } catch (err) {
+        document.getElementById('loading').innerHTML =
+          '<div class="error-msg">Failed to load data. Make sure the server is running.</div>';
+        document.getElementById('statusDot').className = 'dot';
+        document.getElementById('statusDot').style.background = '#ef5350';
+        document.getElementById('statusText').textContent = 'Error';
+      }
+    }
+
+    function getVarianceColor(variance) {
+      if (variance === null) return { bg: '#2d4a5e', text: '#888' };
+      if (variance < 5) return { bg: '#1b5e20', text: '#81c784' };
+      if (variance < 15) return { bg: '#33691e', text: '#aed581' };
+      if (variance < 30) return { bg: '#4a3800', text: '#ffd54f' };
+      if (variance < 50) return { bg: '#4e2a00', text: '#ffb74d' };
+      return { bg: '#4a1010', text: '#ef5350' };
+    }
+
+    function renderTable() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      let filtered = holdingsData.filter(h =>
+        h.ticker.toLowerCase().includes(search) ||
+        h.name.toLowerCase().includes(search)
+      );
+
+      filtered.sort((a, b) => {
+        let va = a[sortCol], vb = b[sortCol];
+        if (va === null) return 1;
+        if (vb === null) return -1;
+        if (typeof va === 'string') {
+          return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return sortAsc ? va - vb : vb - va;
+      });
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = filtered.map(h => {
+        const vc = getVarianceColor(h.varianceFromLow);
+        const rangePercent = (h.fiftyTwoWeekLow && h.fiftyTwoWeekHigh && h.price)
+          ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
+          : 0;
+        const maxWeight = 3.5;
+        const barWidth = Math.min((h.weight / maxWeight) * 50, 50);
+
+        return `<tr>
+          <td>${h.rank}</td>
+          <td>${h.ticker}</td>
+          <td>${h.name}</td>
+          <td>${h.weight.toFixed(2)}%<span class="weight-bar" style="width:${barWidth}px"></span></td>
+          <td class="price-cell">${h.price !== null ? '$' + h.price.toFixed(2) : '—'}</td>
+          <td class="yield-cell">${h.yield !== null ? h.yield.toFixed(2) + '%' : '—'}</td>
+          <td>${h.fiftyTwoWeekLow !== null ? '$' + h.fiftyTwoWeekLow.toFixed(2) : '—'}</td>
+          <td>${h.fiftyTwoWeekHigh !== null ? '$' + h.fiftyTwoWeekHigh.toFixed(2) : '—'}</td>
+          <td>
+            <div class="range-bar">
+              <div class="range-track">
+                <div class="range-dot" style="left:${rangePercent}%"></div>
+              </div>
+            </div>
+          </td>
+          <td><span class="variance-cell" style="background:${vc.bg};color:${vc.text}">
+            ${h.varianceFromLow !== null ? h.varianceFromLow.toFixed(1) + '%' : '—'}
+          </span></td>
+        </tr>`;
+      }).join('');
+
+      // Update sort arrows
+      document.querySelectorAll('thead th').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (!arrow) return;
+        if (th.dataset.col === sortCol) {
+          arrow.textContent = sortAsc ? ' \u25B2' : ' \u25BC';
+        } else {
+          arrow.textContent = '';
+        }
+      });
+    }
+
+    // Sort on header click
+    document.querySelectorAll('thead th[data-col]').forEach(th => {
+      if (th.dataset.col === 'range') return;
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (sortCol === col) {
+          sortAsc = !sortAsc;
+        } else {
+          sortCol = col;
+          sortAsc = col === 'rank' || col === 'ticker' || col === 'name';
+        }
+        renderTable();
+      });
+    });
+
+    // Search
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+
+    // Initial fetch and auto-refresh
+    fetchData();
+    setInterval(fetchData, 10 * 60 * 1000);
+  </script>
+</body>
+</html>

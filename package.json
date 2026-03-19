@@ -1,0 +1,9 @@
+{
+  "name": "dgro-holdings",
+  "version": "1.0.0",
+  "description": "DGRO Top 100 Holdings Dashboard — live market data",
+  "scripts": {
+    "start": "python3 server.py",
+    "dev": "vercel dev"
+  }
+}

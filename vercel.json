@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "api/holdings.py": {
+      "runtime": "python3.12",
+      "maxDuration": 60
+    }
+  },
+  "routes": [
+    { "src": "/api/holdings", "dest": "/api/holdings.py" },
+    { "src": "/(.*)",         "dest": "/public/$1" }
+  ]
+}
