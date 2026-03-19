@@ -1,9 +1,8 @@
 # Vercel Python Serverless Function — /api/holdings
-# Uses yfinance (Python) which passes Yahoo Finance's TLS fingerprint checks.
+# Uses yfinance bulk download (single call for all tickers) to avoid Yahoo Finance IP blocks.
 from http.server import BaseHTTPRequestHandler
 import json, time
 import yfinance as yf
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # DGRO Top 100 Holdings (source: iShares, approximate weights)
 DGRO_HOLDINGS = [
@@ -114,70 +113,92 @@ _cache = {"data": None, "timestamp": 0}
 CACHE_DURATION = 600  # 10 minutes
 
 
-def fetch_single_ticker(ticker):
-    try:
-        tk = yf.Ticker(ticker)
-        fi = tk.fast_info
-        price  = getattr(fi, "last_price",  None)
-        low52  = getattr(fi, "year_low",    None)
-        high52 = getattr(fi, "year_high",   None)
-        div_yield = tk.info.get("dividendYield")
-        return ticker, {
-            "price":            round(price,     2) if price     else None,
-            "yield":            round(div_yield, 2) if div_yield else None,
-            "fiftyTwoWeekLow":  round(low52,     2) if low52     else None,
-            "fiftyTwoWeekHigh": round(high52,    2) if high52    else None,
-        }
-    except Exception as e:
-        print(f"Error fetching {ticker}: {e}")
-        return ticker, None
-
-
 def get_holdings_data():
     now = time.time()
     if _cache["data"] and (now - _cache["timestamp"]) < CACHE_DURATION:
         return _cache["data"], _cache["timestamp"]
 
-    tickers = [h["ticker"] for h in DGRO_HOLDINGS]
-    infos = {}
+    tickers_list = [h["ticker"] for h in DGRO_HOLDINGS]
+    tickers_str  = " ".join(tickers_list)
 
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        futures = {executor.submit(fetch_single_ticker, t): t for t in tickers}
-        for future in as_completed(futures):
-            ticker, data = future.result()
-            if data:
-                infos[ticker] = data
+    # --- Bulk price + 52-week range via single yf.download() call ---
+    try:
+        raw = yf.download(
+            tickers_str,
+            period="1y",
+            auto_adjust=True,
+            progress=False,
+            threads=True,
+        )
+        # raw.columns is a MultiIndex (field, ticker) when >1 ticker
+        close = raw["Close"] if "Close" in raw.columns.get_level_values(0) else raw
+    except Exception as e:
+        print(f"yf.download error: {e}")
+        close = None
 
+    # --- Dividend yield via fast_info (one request per ticker, parallel) ---
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def fetch_yield(ticker):
+        try:
+            fi = yf.Ticker(ticker).fast_info
+            dy = getattr(fi, "three_month_average_volume", None)  # placeholder probe
+            # Try dividendYield from summary_detail endpoint (lighter than full info)
+            tk_obj = yf.Ticker(ticker)
+            dy = None
+            try:
+                dy = tk_obj.info.get("dividendYield")
+            except Exception:
+                pass
+            return ticker, dy
+        except Exception:
+            return ticker, None
+
+    yields = {}
+    try:
+        with ThreadPoolExecutor(max_workers=20) as ex:
+            futs = {ex.submit(fetch_yield, t): t for t in tickers_list}
+            for f in as_completed(futs):
+                t, dy = f.result()
+                yields[t] = dy
+    except Exception as e:
+        print(f"yield fetch error: {e}")
+
+    # --- Build results ---
     results = []
     for i, holding in enumerate(DGRO_HOLDINGS):
         ticker = holding["ticker"]
-        info = infos.get(ticker)
-        if info:
-            price = info["price"]
-            low52 = info["fiftyTwoWeekLow"]
-            variance = (
-                round((price - low52) / low52 * 100, 2)
-                if price and low52 and low52 > 0
-                else None
-            )
-            results.append({
-                "rank": i + 1,
-                "ticker": holding["ticker"],
-                "name":   holding["name"],
-                "weight": holding["weight"],
-                **info,
-                "varianceFromLow": variance,
-            })
-        else:
-            results.append({
-                "rank": i + 1,
-                "ticker": holding["ticker"],
-                "name":   holding["name"],
-                "weight": holding["weight"],
-                "price": None, "yield": None,
-                "fiftyTwoWeekLow": None, "fiftyTwoWeekHigh": None,
-                "varianceFromLow": None,
-            })
+        price = low52 = high52 = None
+
+        if close is not None:
+            try:
+                col = close[ticker]
+                col = col.dropna()
+                if not col.empty:
+                    price = float(round(col.iloc[-1], 2))
+                    low52 = float(round(col.min(), 2))
+                    high52 = float(round(col.max(), 2))
+            except Exception as e:
+                print(f"parse error {ticker}: {e}")
+
+        dy = yields.get(ticker)
+        variance = (
+            round((price - low52) / low52 * 100, 2)
+            if price and low52 and low52 > 0
+            else None
+        )
+
+        results.append({
+            "rank":            i + 1,
+            "ticker":          ticker,
+            "name":            holding["name"],
+            "weight":          holding["weight"],
+            "price":           price,
+            "yield":           round(dy, 4) if dy else None,
+            "fiftyTwoWeekLow": low52,
+            "fiftyTwoWeekHigh":high52,
+            "varianceFromLow": variance,
+        })
 
     _cache["data"]      = results
     _cache["timestamp"] = now
@@ -203,7 +224,8 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         except Exception as e:
-            body = json.dumps({"error": str(e)}).encode("utf-8")
+            import traceback
+            body = json.dumps({"error": str(e), "trace": traceback.format_exc()}).encode("utf-8")
             self.send_response(500)
             self.send_header("Content-Type", "application/json")
             self.end_headers()

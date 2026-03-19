@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/holdings.py": { "maxDuration": 60 }
+  },
   "routes": [
     { "src": "/api/holdings", "dest": "/api/holdings.py" },
     { "src": "/(.*)",         "dest": "/public/$1" }
