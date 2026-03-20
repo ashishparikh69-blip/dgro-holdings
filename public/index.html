@@ -60,7 +60,7 @@
     .search-bar input:focus { border-color: #4fc3f7; }
     .table-container {
       overflow-x: auto;
-      padding: 0 16px 32px;
+      padding: 0 8px 32px;
     }
     table {
       width: 100%;
@@ -70,7 +70,7 @@
     }
     thead th {
       background: #1a2634;
-      padding: 12px 14px;
+      padding: 10px 8px;
       text-align: right;
       font-weight: 600;
       color: #8899aa;
@@ -96,7 +96,7 @@
     }
     tbody tr:hover { background: #1a2e3e; }
     td {
-      padding: 10px 14px;
+      padding: 9px 8px;
       text-align: right;
       white-space: nowrap;
     }
@@ -119,7 +119,7 @@
       justify-content: flex-end;
     }
     .range-track {
-      width: 80px;
+      width: 60px;
       height: 6px;
       background: #2d4a5e;
       border-radius: 3px;
@@ -136,10 +136,10 @@
     }
     .variance-cell {
       font-weight: 600;
-      padding: 4px 10px;
+      padding: 3px 6px;
       border-radius: 4px;
       display: inline-block;
-      min-width: 70px;
+      min-width: 58px;
       text-align: center;
     }
     .yield-cell { color: #81c784; }
@@ -273,7 +273,7 @@
           ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
           : 0;
         const maxWeight = 3.5;
-        const barWidth = Math.min((h.weight / maxWeight) * 50, 50);
+        const barWidth = Math.min((h.weight / maxWeight) * 36, 36);
 
         return `<tr>
           <td>${h.rank}</td>
