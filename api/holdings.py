@@ -6,28 +6,28 @@ import json, time, urllib.request
 from datetime import date, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Trailing 12-month dividend yields (%) — updated Mar 2026
+# Trailing 12-month dividend yields (%) — updated Mar 2026 via Yahoo Finance trailingAnnualDividendYield
 DIVIDEND_YIELDS = {
     "AAPL":  0.52, "MSFT":  0.83, "JPM":   2.28, "ABBV":  3.55, "AVGO":  1.23,
-    "HD":    2.42, "JNJ":   3.35, "PG":    2.41, "XOM":   3.64, "CVX":   4.27,
-    "MRK":   3.24, "PFE":   6.85, "CSCO":  3.22, "KO":    3.05, "PEP":   3.52,
-    "VZ":    6.82, "CMCSA": 3.28, "TXN":   2.95, "PM":    4.55, "BMY":   5.52,
-    "UNP":   2.45, "QCOM":  2.25, "RTX":   2.12, "LOW":   2.18, "MDT":   3.62,
-    "MS":    3.48, "BLK":   2.55, "SCHW":  1.82, "C":     3.35, "CB":    1.44,
-    "GS":    2.42, "ADI":   1.82, "DE":    1.85, "SO":    3.45, "DUK":   3.82,
-    "ITW":   2.55, "CI":    1.78, "USB":   4.52, "PNC":   3.82, "ADP":   2.15,
-    "TGT":   4.05, "MMM":   2.25, "EMR":   2.05, "FIS":   1.82, "APD":   2.55,
-    "NSC":   2.52, "CME":   2.05, "ICE":   1.32, "EOG":   3.05, "CL":    2.25,
-    "WMB":   4.52, "F":     5.48, "GM":    1.02, "MET":   3.25, "PRU":   4.52,
-    "AIG":   2.05, "TRV":   1.82, "ALL":   2.05, "D":     4.85, "SRE":   3.45,
-    "AEP":   4.05, "WEC":   3.52, "XEL":   3.55, "ETR":   3.62, "PPL":   3.25,
-    "ED":    3.45, "FITB":  4.05, "KEY":   5.05, "RF":    5.52, "CFG":   4.52,
-    "HBAN":  5.05, "NTRS":  3.05, "STT":   3.55, "IP":    3.52, "NUE":   2.05,
-    "PAYX":  2.82, "FAST":  2.05, "GPC":   3.52, "OMC":   3.82, "HPQ":   3.52,
-    "KMB":   5.11, "SYY":   2.82, "CAH":   1.82, "TROW":  5.52, "BEN":   5.52,
-    "LEN":   0.52, "DHI":   1.05, "PHM":   0.82, "OKE":   4.52, "KMI":   4.82,
-    "CINF":  2.82, "AMCR":  5.52, "FNF":   3.52, "CMA":   5.05, "ZION":  3.52,
-    "OGN":   5.52, "UGI":   6.05, "FAF":   4.05,
+    "HD":    2.42, "JNJ":   2.16, "PG":    2.41, "XOM":   2.53, "CVX":   3.40,
+    "MRK":   3.24, "PFE":   6.28, "CSCO":  2.09, "KO":    3.05, "PEP":   3.52,
+    "VZ":    5.53, "CMCSA": 4.55, "TXN":   2.95, "PM":    3.45, "BMY":   4.28,
+    "UNP":   2.45, "QCOM":  2.25, "RTX":   1.33, "LOW":   2.18, "MDT":   3.62,
+    "MS":    2.48, "BLK":   2.55, "SCHW":  1.15, "C":     2.11, "CB":    1.44,
+    "GS":    1.73, "ADI":   1.31, "DE":    1.14, "SO":    3.45, "DUK":   3.25,
+    "ITW":   2.55, "CI":    1.78, "USB":   3.98, "PNC":   3.27, "ADP":   3.00,
+    "TGT":   4.05, "MMM":   2.25, "EMR":   2.05, "FIS":   3.25, "APD":   2.55,
+    "NSC":   1.94, "CME":   2.05, "ICE":   1.32, "EOG":   3.05, "CL":    2.25,
+    "WMB":   2.70, "F":     5.48, "GM":    1.02, "MET":   3.25, "PRU":   5.84,
+    "AIG":   2.05, "TRV":   1.82, "ALL":   2.05, "D":     4.85, "SRE":   2.71,
+    "AEP":   2.91, "WEC":   3.52, "XEL":   2.87, "ETR":   2.35, "PPL":   3.25,
+    "ED":    3.45, "FITB":  3.53, "KEY":   4.25, "RF":    4.09, "CFG":   3.01,
+    "HBAN":  4.09, "NTRS":  2.28, "STT":   2.65, "IP":    5.44, "NUE":   1.36,
+    "PAYX":  4.60, "FAST":  2.05, "GPC":   4.16, "OMC":   3.82, "HPQ":   6.32,
+    "KMB":   5.11, "SYY":   2.82, "CAH":   0.97, "TROW":  5.52, "BEN":   5.52,
+    "LEN":   2.13, "DHI":   1.05, "PHM":   0.82, "OKE":   4.52, "KMI":   3.50,
+    "CINF":  2.20, "AMCR":  6.66, "FNF":   4.50, "CMA":   3.06, "ZION":  3.52,
+    "OGN":   5.52, "UGI":   4.07, "FAF":   4.05,
 }
 
 # DGRO Top 100 Holdings (source: iShares, approximate weights)
