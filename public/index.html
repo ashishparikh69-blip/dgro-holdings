@@ -64,11 +64,23 @@
       padding: 0 8px 32px;
     }
     table {
-      width: 100%;
+      width: auto;
+      min-width: 100%;
       border-collapse: collapse;
       margin-top: 8px;
       font-size: 14px;
+      table-layout: fixed;
     }
+    col.col-rank   { width: 48px; }
+    col.col-ticker { width: 72px; }
+    col.col-name   { width: 180px; }
+    col.col-weight { width: 110px; }
+    col.col-price  { width: 90px; }
+    col.col-yield  { width: 80px; }
+    col.col-low    { width: 90px; }
+    col.col-high   { width: 90px; }
+    col.col-range  { width: 100px; }
+    col.col-var    { width: 110px; }
     thead th {
       background: #1a2634;
       padding: 10px 8px;
@@ -109,7 +121,7 @@
       padding-right: 4px;
     }
     thead th:nth-child(2) { padding-right: 4px; }
-    td:nth-child(3) { text-align: left; color: #aabbcc; padding-left: 4px; padding-right: 4px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+    td:nth-child(3) { text-align: left; color: #aabbcc; padding-left: 4px; padding-right: 4px; overflow: hidden; text-overflow: ellipsis; }
     thead th:nth-child(3) { padding-left: 4px; padding-right: 4px; }
     td:nth-child(4) { padding-left: 4px; }
     thead th:nth-child(4) { padding-left: 4px; }
@@ -195,6 +207,18 @@
       <div style="color: #6688aa;">Fetching live market data for 100 holdings...</div>
     </div>
     <table id="holdingsTable" style="display:none;">
+      <colgroup>
+        <col class="col-rank">
+        <col class="col-ticker">
+        <col class="col-name">
+        <col class="col-weight">
+        <col class="col-price">
+        <col class="col-yield">
+        <col class="col-low">
+        <col class="col-high">
+        <col class="col-range">
+        <col class="col-var">
+      </colgroup>
       <thead>
         <tr>
           <th data-col="rank"># <span class="sort-arrow"></span></th>
