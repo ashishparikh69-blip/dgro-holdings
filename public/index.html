@@ -204,7 +204,7 @@
   <div class="table-container">
     <div id="loading" class="loading-overlay">
       <div class="spinner"></div>
-      <div style="color: #6688aa;">Fetching last-close market data for 98 holdings...</div>
+      <div style="color: #6688aa;">Fetching market data for 98 holdings...</div>
     </div>
     <table id="holdingsTable" style="display:none;">
       <colgroup>
@@ -225,7 +225,7 @@
           <th data-col="ticker">Ticker <span class="sort-arrow"></span></th>
           <th data-col="name">Company <span class="sort-arrow"></span></th>
           <th data-col="weight">Weight% <span class="sort-arrow"></span></th>
-          <th data-col="price">Price (last close) <span class="sort-arrow"></span></th>
+          <th data-col="price">Price <span class="sort-arrow"></span></th>
           <th data-col="yield">Yield% <span class="sort-arrow"></span></th>
           <th data-col="fiftyTwoWeekLow">52W Low <span class="sort-arrow"></span></th>
           <th data-col="fiftyTwoWeekHigh">52W High <span class="sort-arrow"></span></th>
@@ -352,9 +352,14 @@
     // Search
     document.getElementById('searchInput').addEventListener('input', renderTable);
 
-    // Initial fetch and auto-refresh
+    // Initial fetch and auto-refresh every 60 s (Finnhub real-time cadence)
     fetchData();
-    setInterval(fetchData, 10 * 60 * 1000);
+    setInterval(fetchData, 60 * 1000);
   </script>
+
+  <footer style="text-align:center; padding: 18px 16px 28px; font-size: 11px; color: #556677; line-height: 1.6;">
+    Prices are real-time during US market hours (Mon–Fri 9:30 am – 4:00 pm ET), otherwise reflect last close. &nbsp;·&nbsp;
+    52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values.
+  </footer>
 </body>
 </html>

@@ -1,10 +1,13 @@
 # Vercel Python Serverless Function — /api/holdings
-# Price/52W data from Stooq (no auth, no cloud IP blocking).
-# Dividend yields hardcoded (trailing 12-month, updated Mar 2026).
+# Prices:  Finnhub real-time (market hours), fallback to Stooq last close.
+# 52W data: Stooq end-of-day, cached 24 h.
+# Dividend yields: hardcoded trailing 12-month, updated Mar 2026.
 from http.server import BaseHTTPRequestHandler
-import json, time, urllib.request
+import json, time, os, urllib.request, urllib.error
 from datetime import date, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+FINNHUB_TOKEN = os.environ.get("FINNHUB_TOKEN", "")
 
 # Trailing 12-month dividend yields (%) — updated Mar 2026 via Yahoo Finance trailingAnnualDividendYield
 DIVIDEND_YIELDS = {
@@ -30,7 +33,7 @@ DIVIDEND_YIELDS = {
     "OGN":   5.52, "UGI":   4.07, "FAF":   4.05,
 }
 
-# DGRO Top 100 Holdings (source: iShares, approximate weights)
+# DGRO Top 100 Holdings (source: iShares, approximate weights) — sorted by weight desc
 DGRO_HOLDINGS = [
     {"ticker": "AAPL",  "name": "Apple Inc",                     "weight": 3.18},
     {"ticker": "MSFT",  "name": "Microsoft Corp",                "weight": 3.05},
@@ -132,34 +135,30 @@ DGRO_HOLDINGS = [
     {"ticker": "FAF",   "name": "First American Financial",      "weight": 0.04},
 ]
 
-# Module-level cache (reused across warm Vercel invocations)
-_cache = {"data": None, "timestamp": 0}
-CACHE_DURATION = 600  # 10 minutes
+# ── Separate caches ───────────────────────────────────────────────────────────
+# Stooq: 52W low/high + last-close fallback  — refresh every 24 h
+# Finnhub: real-time current price           — refresh every 60 s
+_stooq_cache  = {"data": None, "ts": 0}
+_price_cache  = {"data": None, "ts": 0}
+STOOQ_TTL  = 24 * 3600   # 24 hours
+PRICE_TTL  = 60           # 60 seconds
 
 
 def fetch_stooq(ticker):
-    """Fetch 1 year of daily closes from Stooq for a US-listed ticker."""
+    """Fetch 1 year of daily closes from Stooq (52W range + last-close fallback)."""
     d2 = date.today().strftime("%Y%m%d")
     d1 = (date.today() - timedelta(days=366)).strftime("%Y%m%d")
-    stooq_sym = ticker.lower() + ".us"
     url = (
-        f"https://stooq.com/q/d/l/?s={stooq_sym}&i=d"
+        f"https://stooq.com/q/d/l/?s={ticker.lower()}.us&i=d"
         f"&d1={d1}&d2={d2}"
     )
     try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0"},
-        )
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=20) as resp:
             text = resp.read().decode("utf-8").strip()
-
         lines = text.split("\n")
         if len(lines) < 2:
-            print(f"{ticker}: no data rows")
             return ticker, None
-
-        # CSV header: Date,Open,High,Low,Close,Volume
         closes = []
         for line in lines[1:]:
             parts = line.split(",")
@@ -168,76 +167,110 @@ def fetch_stooq(ticker):
                     closes.append(float(parts[4]))
                 except ValueError:
                     pass
-
         if not closes:
-            print(f"{ticker}: could not parse closes")
             return ticker, None
-
-        price  = closes[-1]
-        low52  = min(closes)
-        high52 = max(closes)
         return ticker, {
-            "price":            round(price,  2),
-            "fiftyTwoWeekLow":  round(low52,  2),
-            "fiftyTwoWeekHigh": round(high52, 2),
+            "lastClose":        round(closes[-1], 2),
+            "fiftyTwoWeekLow":  round(min(closes), 2),
+            "fiftyTwoWeekHigh": round(max(closes), 2),
         }
     except Exception as e:
         print(f"{ticker} stooq error: {e}")
         return ticker, None
 
 
+def fetch_finnhub_price(ticker):
+    """Fetch real-time quote from Finnhub. Returns (ticker, price|None)."""
+    if not FINNHUB_TOKEN:
+        return ticker, None
+    url = f"https://finnhub.io/api/v1/quote?symbol={ticker}&token={FINNHUB_TOKEN}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            text = resp.read().decode("utf-8")
+        data  = json.loads(text)
+        price = data.get("c")   # current price (0 when market closed / no data)
+        if price and price > 0:
+            return ticker, round(price, 2)
+        # Finnhub returns c=0 outside market hours — treat as no live price
+        return ticker, None
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            print(f"{ticker}: Finnhub rate-limited")
+        else:
+            print(f"{ticker} finnhub HTTP {e.code}")
+        return ticker, None
+    except Exception as e:
+        print(f"{ticker} finnhub error: {e}")
+        return ticker, None
+
+
+def _fetch_batch(fn, tickers, batch_size, pause):
+    """Generic batched parallel fetch. Returns dict {ticker: result}."""
+    results = {}
+    for i in range(0, len(tickers), batch_size):
+        batch = tickers[i:i + batch_size]
+        with ThreadPoolExecutor(max_workers=batch_size) as ex:
+            futures = {ex.submit(fn, t): t for t in batch}
+            for f in as_completed(futures):
+                t, v = f.result()
+                if v is not None:
+                    results[t] = v
+        if i + batch_size < len(tickers):
+            time.sleep(pause)
+    return results
+
 
 def get_holdings_data():
-    now = time.time()
-    if _cache["data"] and (now - _cache["timestamp"]) < CACHE_DURATION:
-        return _cache["data"], _cache["timestamp"]
-
+    now     = time.time()
     tickers = [h["ticker"] for h in DGRO_HOLDINGS]
-    quotes  = {}
 
-    # 5 concurrent workers per batch + 0.5s pause = stays under Stooq rate limits
-    # 20 batches × ~1s each ≈ 20s total, well within the 60s function timeout
-    batch_size = 5
-    for batch_start in range(0, len(tickers), batch_size):
-        batch = tickers[batch_start:batch_start + batch_size]
-        with ThreadPoolExecutor(max_workers=batch_size) as executor:
-            futures = {executor.submit(fetch_stooq, t): t for t in batch}
-            for future in as_completed(futures):
-                ticker, data = future.result()
-                if data:
-                    quotes[ticker] = data
-        # Pause between batches to respect Stooq's rate limit
-        if batch_start + batch_size < len(tickers):
-            time.sleep(0.5)
+    # ── Stooq 52W data (refresh every 24 h) ──────────────────────────────────
+    if not _stooq_cache["data"] or (now - _stooq_cache["ts"]) >= STOOQ_TTL:
+        stooq = _fetch_batch(fetch_stooq, tickers, batch_size=5, pause=0.5)
+        print(f"Stooq: {len(stooq)}/{len(tickers)} tickers")
+        _stooq_cache["data"] = stooq
+        _stooq_cache["ts"]   = now
 
-    print(f"Fetched {len(quotes)}/{len(tickers)} tickers from Stooq")
+    # ── Finnhub real-time prices (refresh every 60 s) ─────────────────────────
+    # Tickers are ordered by weight desc, so highest-weight stocks are fetched
+    # first and are least likely to be dropped if we hit the 60-calls/min limit.
+    if not _price_cache["data"] or (now - _price_cache["ts"]) >= PRICE_TTL:
+        prices = _fetch_batch(fetch_finnhub_price, tickers, batch_size=15, pause=0.3)
+        print(f"Finnhub: {len(prices)}/{len(tickers)} live prices")
+        _price_cache["data"] = prices
+        _price_cache["ts"]   = now
 
+    stooq_data     = _stooq_cache["data"]
+    finnhub_prices = _price_cache["data"]
+
+    # ── Combine ───────────────────────────────────────────────────────────────
     results = []
     for i, holding in enumerate(DGRO_HOLDINGS):
-        ticker = holding["ticker"]
-        q      = quotes.get(ticker, {})
-        price  = q.get("price")
-        low52  = q.get("fiftyTwoWeekLow")
-        high52 = q.get("fiftyTwoWeekHigh")
+        ticker  = holding["ticker"]
+        sq      = stooq_data.get(ticker, {})
+        live_px = finnhub_prices.get(ticker)          # real-time (may be None)
+        last_px = sq.get("lastClose")                 # Stooq last close fallback
+        price   = live_px if live_px is not None else last_px
+        low52   = sq.get("fiftyTwoWeekLow")
+        high52  = sq.get("fiftyTwoWeekHigh")
         variance = (
             round((price - low52) / low52 * 100, 2)
-            if price and low52 and low52 > 0
-            else None
+            if price and low52 and low52 > 0 else None
         )
         results.append({
-            "rank":            i + 1,
-            "ticker":          ticker,
-            "name":            holding["name"],
-            "weight":          holding["weight"],
-            "price":           price,
-            "yield":           DIVIDEND_YIELDS.get(ticker),
-            "fiftyTwoWeekLow": low52,
-            "fiftyTwoWeekHigh":high52,
-            "varianceFromLow": variance,
+            "rank":             i + 1,
+            "ticker":           ticker,
+            "name":             holding["name"],
+            "weight":           holding["weight"],
+            "price":            price,
+            "priceIsLive":      live_px is not None,
+            "yield":            DIVIDEND_YIELDS.get(ticker),
+            "fiftyTwoWeekLow":  low52,
+            "fiftyTwoWeekHigh": high52,
+            "varianceFromLow":  variance,
         })
 
-    _cache["data"]      = results
-    _cache["timestamp"] = now
     return results, now
 
 
@@ -247,8 +280,10 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             data, timestamp = get_holdings_data()
+            live_count = sum(1 for h in data if h.get("priceIsLive"))
             body = json.dumps({
                 "holdings":    data,
+                "liveCount":   live_count,
                 "lastUpdated": time.strftime(
                     "%Y-%m-%dT%H:%M:%S", time.gmtime(timestamp)
                 ),
