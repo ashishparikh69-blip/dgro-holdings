@@ -253,8 +253,10 @@
         document.getElementById('holdingsTable').style.display = '';
         document.getElementById('statusDot').className = 'dot';
         document.getElementById('statusText').textContent = 'Live';
-        document.getElementById('lastUpdated').textContent =
-          'Last updated: ' + new Date(json.lastUpdated).toLocaleTimeString();
+        const pstTime = new Date(json.lastUpdated + 'Z').toLocaleTimeString('en-US', {
+          timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        document.getElementById('lastUpdated').textContent = 'Last updated: ' + pstTime + ' PST';
         renderTable();
       } catch (err) {
         document.getElementById('loading').innerHTML =
@@ -358,7 +360,7 @@
   </script>
 
   <footer style="text-align:center; padding: 18px 16px 28px; font-size: 11px; color: #556677; line-height: 1.6;">
-    Prices are real-time during US market hours (Mon–Fri 9:30 am – 4:00 pm ET), otherwise reflect last close. &nbsp;·&nbsp;
+    Prices update every ~2 min during US market hours (Mon–Fri 9:30 am – 4:00 pm ET), otherwise reflect last close. &nbsp;·&nbsp;
     52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values.
   </footer>
 </body>

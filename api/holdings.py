@@ -136,12 +136,18 @@ DGRO_HOLDINGS = [
 ]
 
 # ── Separate caches ───────────────────────────────────────────────────────────
-# Stooq: 52W low/high + last-close fallback  — refresh every 24 h
-# Finnhub: real-time current price           — refresh every 60 s
-_stooq_cache  = {"data": None, "ts": 0}
-_price_cache  = {"data": None, "ts": 0}
-STOOQ_TTL  = 24 * 3600   # 24 hours
-PRICE_TTL  = 60           # 60 seconds
+# Stooq:   52W low/high + last-close fallback — refresh every 24 h
+# Finnhub: real-time price, staggered batches — each half refreshes every 60 s,
+#          alternating so we never fire >49 calls at once (well within 60/min limit).
+#          Each individual ticker is guaranteed fresh within ~120 s.
+_stooq_cache = {"data": None, "ts": 0}
+_price_state = {
+    "data":       {},     # accumulated {ticker: price} for all tickers
+    "batch_ts":   [0, 0], # last fetch time for half-0 and half-1
+    "next_batch": 0,      # which half to refresh on the next stale tick
+}
+STOOQ_TTL  = 24 * 3600  # 24 hours
+PRICE_TTL  = 60          # each half refreshes every 60 s (so each ticker every ~120 s)
 
 
 def fetch_stooq(ticker):
@@ -205,19 +211,26 @@ def fetch_finnhub_price(ticker):
         return ticker, None
 
 
-def _fetch_batch(fn, tickers, batch_size, pause):
-    """Generic batched parallel fetch. Returns dict {ticker: result}."""
+def _parallel_fetch(fn, tickers):
+    """Fire all ticker requests concurrently. Returns dict {ticker: result}."""
     results = {}
-    for i in range(0, len(tickers), batch_size):
-        batch = tickers[i:i + batch_size]
-        with ThreadPoolExecutor(max_workers=batch_size) as ex:
-            futures = {ex.submit(fn, t): t for t in batch}
-            for f in as_completed(futures):
-                t, v = f.result()
-                if v is not None:
-                    results[t] = v
-        if i + batch_size < len(tickers):
-            time.sleep(pause)
+    with ThreadPoolExecutor(max_workers=len(tickers)) as ex:
+        futures = {ex.submit(fn, t): t for t in tickers}
+        for f in as_completed(futures):
+            t, v = f.result()
+            if v is not None:
+                results[t] = v
+    return results
+
+
+def _stooq_batched(tickers):
+    """Stooq needs gentle rate-limiting: batches of 5 with 0.5 s pauses."""
+    results = {}
+    for i in range(0, len(tickers), 5):
+        chunk = tickers[i:i + 5]
+        results.update(_parallel_fetch(fetch_stooq, chunk))
+        if i + 5 < len(tickers):
+            time.sleep(0.5)
     return results
 
 
@@ -227,22 +240,29 @@ def get_holdings_data():
 
     # ── Stooq 52W data (refresh every 24 h) ──────────────────────────────────
     if not _stooq_cache["data"] or (now - _stooq_cache["ts"]) >= STOOQ_TTL:
-        stooq = _fetch_batch(fetch_stooq, tickers, batch_size=5, pause=0.5)
+        stooq = _stooq_batched(tickers)
         print(f"Stooq: {len(stooq)}/{len(tickers)} tickers")
         _stooq_cache["data"] = stooq
         _stooq_cache["ts"]   = now
 
-    # ── Finnhub real-time prices (refresh every 60 s) ─────────────────────────
-    # Tickers are ordered by weight desc, so highest-weight stocks are fetched
-    # first and are least likely to be dropped if we hit the 60-calls/min limit.
-    if not _price_cache["data"] or (now - _price_cache["ts"]) >= PRICE_TTL:
-        prices = _fetch_batch(fetch_finnhub_price, tickers, batch_size=15, pause=0.3)
-        print(f"Finnhub: {len(prices)}/{len(tickers)} live prices")
-        _price_cache["data"] = prices
-        _price_cache["ts"]   = now
+    # ── Finnhub staggered batch prices ────────────────────────────────────────
+    # Split tickers into two halves (~49 each).  On each 60-second tick we fetch
+    # only ONE half, alternating between them.  This keeps every Finnhub call
+    # burst well under the 60-calls/minute free-tier limit, and guarantees every
+    # ticker gets a fresh price within ~120 seconds.
+    mid  = len(tickers) // 2          # 49
+    halves = [tickers[:mid], tickers[mid:]]
+    idx  = _price_state["next_batch"]
+
+    if (now - _price_state["batch_ts"][idx]) >= PRICE_TTL:
+        prices = _parallel_fetch(fetch_finnhub_price, halves[idx])
+        _price_state["data"].update(prices)
+        _price_state["batch_ts"][idx] = now
+        _price_state["next_batch"]    = 1 - idx   # alternate
+        print(f"Finnhub half-{idx}: {len(prices)}/{len(halves[idx])} live")
 
     stooq_data     = _stooq_cache["data"]
-    finnhub_prices = _price_cache["data"]
+    finnhub_prices = _price_state["data"]
 
     # ── Combine ───────────────────────────────────────────────────────────────
     results = []
