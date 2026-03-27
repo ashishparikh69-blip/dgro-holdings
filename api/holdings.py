@@ -165,11 +165,13 @@ def fetch_stooq(ticker):
         lines = text.split("\n")
         if len(lines) < 2:
             return ticker, None
-        closes = []
+        closes, highs, lows = [], [], []
         for line in lines[1:]:
             parts = line.split(",")
             if len(parts) >= 5:
                 try:
+                    highs.append(float(parts[2]))
+                    lows.append(float(parts[3]))
                     closes.append(float(parts[4]))
                 except ValueError:
                     pass
@@ -177,8 +179,8 @@ def fetch_stooq(ticker):
             return ticker, None
         return ticker, {
             "lastClose":        round(closes[-1], 2),
-            "fiftyTwoWeekLow":  round(min(closes), 2),
-            "fiftyTwoWeekHigh": round(max(closes), 2),
+            "fiftyTwoWeekLow":  round(min(lows), 2),
+            "fiftyTwoWeekHigh": round(max(highs), 2),
         }
     except Exception as e:
         print(f"{ticker} stooq error: {e}")
