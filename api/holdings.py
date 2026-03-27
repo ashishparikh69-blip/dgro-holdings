@@ -1,6 +1,6 @@
 # Vercel Python Serverless Function — /api/holdings
-# Prices:  Finnhub real-time (market hours), fallback to Stooq last close.
-# 52W data: Stooq end-of-day, cached 24 h.
+# Prices:  Finnhub real-time (market hours), fallback to last close.
+# 52W data: Yahoo Finance primary, Stooq fallback, cached 24 h.
 # Dividend yields: hardcoded trailing 12-month, updated Mar 2026.
 from http.server import BaseHTTPRequestHandler
 import json, time, os, urllib.request, urllib.error
@@ -150,8 +150,34 @@ STOOQ_TTL  = 24 * 3600  # 24 hours
 PRICE_TTL  = 60          # each half refreshes every 60 s (so each ticker every ~120 s)
 
 
+def fetch_yahoo_52w(ticker):
+    """Fetch 1 year of daily OHLC from Yahoo Finance (52W range + last-close fallback)."""
+    url = (
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+        f"?range=1y&interval=1d&includePrePost=false"
+    )
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        quote = data["chart"]["result"][0]["indicators"]["quote"][0]
+        highs  = [x for x in quote["high"]  if x is not None]
+        lows   = [x for x in quote["low"]   if x is not None]
+        closes = [x for x in quote["close"] if x is not None]
+        if not closes:
+            return ticker, None
+        return ticker, {
+            "lastClose":        round(closes[-1], 2),
+            "fiftyTwoWeekLow":  round(min(lows), 2),
+            "fiftyTwoWeekHigh": round(max(highs), 2),
+        }
+    except Exception as e:
+        print(f"{ticker} yahoo error: {e}")
+        return ticker, None
+
+
 def fetch_stooq(ticker):
-    """Fetch 1 year of daily closes from Stooq (52W range + last-close fallback)."""
+    """Fallback: Fetch 1 year of daily data from Stooq."""
     d2 = date.today().strftime("%Y%m%d")
     d1 = (date.today() - timedelta(days=366)).strftime("%Y%m%d")
     url = (
@@ -225,14 +251,24 @@ def _parallel_fetch(fn, tickers):
     return results
 
 
-def _stooq_batched(tickers):
-    """Stooq needs gentle rate-limiting: batches of 5 with 0.5 s pauses."""
+def _fetch_52w_batched(tickers):
+    """Yahoo Finance primary, Stooq fallback. Batches of 10 with 0.3 s pauses."""
     results = {}
-    for i in range(0, len(tickers), 5):
-        chunk = tickers[i:i + 5]
-        results.update(_parallel_fetch(fetch_stooq, chunk))
-        if i + 5 < len(tickers):
-            time.sleep(0.5)
+    # Primary: Yahoo Finance (reliable from cloud IPs)
+    for i in range(0, len(tickers), 10):
+        chunk = tickers[i:i + 10]
+        results.update(_parallel_fetch(fetch_yahoo_52w, chunk))
+        if i + 10 < len(tickers):
+            time.sleep(0.3)
+    # Fallback: Stooq for any tickers Yahoo missed
+    missing = [t for t in tickers if t not in results]
+    if missing:
+        print(f"Yahoo missed {len(missing)} tickers, trying Stooq fallback")
+        for i in range(0, len(missing), 5):
+            chunk = missing[i:i + 5]
+            results.update(_parallel_fetch(fetch_stooq, chunk))
+            if i + 5 < len(missing):
+                time.sleep(0.5)
     return results
 
 
@@ -242,9 +278,9 @@ def get_holdings_data():
 
     # ── Stooq 52W data (refresh every 24 h) ──────────────────────────────────
     if not _stooq_cache["data"] or (now - _stooq_cache["ts"]) >= STOOQ_TTL:
-        stooq = _stooq_batched(tickers)
-        print(f"Stooq: {len(stooq)}/{len(tickers)} tickers")
-        _stooq_cache["data"] = stooq
+        w52 = _fetch_52w_batched(tickers)
+        print(f"52W data: {len(w52)}/{len(tickers)} tickers")
+        _stooq_cache["data"] = w52
         _stooq_cache["ts"]   = now
 
     # ── Finnhub staggered batch prices ────────────────────────────────────────
