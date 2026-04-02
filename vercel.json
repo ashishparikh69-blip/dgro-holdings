@@ -1,15 +1,12 @@
 {
+  "outputDirectory": "public",
   "functions": {
     "api/holdings.py":              { "maxDuration": 60 },
     "api/schd-holdings.py":         { "maxDuration": 60 },
     "api/intersection-holdings.py": { "maxDuration": 60 }
   },
   "rewrites": [
-    { "source": "/api/holdings",              "destination": "/api/holdings.py" },
-    { "source": "/api/schd-holdings",         "destination": "/api/schd-holdings.py" },
-    { "source": "/api/intersection-holdings", "destination": "/api/intersection-holdings.py" },
-    { "source": "/schd",                      "destination": "/public/schd.html" },
-    { "source": "/intersection",              "destination": "/public/intersection.html" },
-    { "source": "/:path*",                    "destination": "/public/:path*" }
+    { "source": "/schd",         "destination": "/schd.html" },
+    { "source": "/intersection", "destination": "/intersection.html" }
   ]
 }
