@@ -39,7 +39,6 @@ DGRO_HOLDINGS = [
     {"ticker": "SCHW", "name": "Charles Schwab Corp", "weight": 0.98},
     {"ticker": "C", "name": "Citigroup Inc", "weight": 0.95},
     {"ticker": "CB", "name": "Chubb Ltd", "weight": 0.92},
-    {"ticker": "MMC", "name": "Marsh & McLennan Cos", "weight": 0.89},
     {"ticker": "GS", "name": "Goldman Sachs Group", "weight": 0.87},
     {"ticker": "ADI", "name": "Analog Devices Inc", "weight": 0.85},
     {"ticker": "DE", "name": "Deere & Co", "weight": 0.83},
@@ -95,7 +94,6 @@ DGRO_HOLDINGS = [
     {"ticker": "CAH", "name": "Cardinal Health Inc", "weight": 0.20},
     {"ticker": "TROW", "name": "T. Rowe Price Group", "weight": 0.19},
     {"ticker": "BEN", "name": "Franklin Resources", "weight": 0.18},
-    {"ticker": "WBA", "name": "Walgreens Boots Alliance", "weight": 0.17},
     {"ticker": "LEN", "name": "Lennar Corp", "weight": 0.16},
     {"ticker": "DHI", "name": "D.R. Horton Inc", "weight": 0.15},
     {"ticker": "PHM", "name": "PulteGroup Inc", "weight": 0.14},
@@ -111,10 +109,107 @@ DGRO_HOLDINGS = [
     {"ticker": "FAF", "name": "First American Financial", "weight": 0.04},
 ]
 
+# SCHD Top 89 Holdings (source: Schwab/stockanalysis, post-March 2026 reconstitution)
+SCHD_HOLDINGS = [
+    {"ticker": "CVX",   "name": "Chevron Corp",                      "weight": 4.66},
+    {"ticker": "COP",   "name": "ConocoPhillips",                    "weight": 4.33},
+    {"ticker": "MRK",   "name": "Merck & Co Inc",                    "weight": 4.08},
+    {"ticker": "VZ",    "name": "Verizon Communications",            "weight": 4.03},
+    {"ticker": "KO",    "name": "Coca-Cola Co",                      "weight": 3.98},
+    {"ticker": "TXN",   "name": "Texas Instruments Inc",             "weight": 3.86},
+    {"ticker": "PEP",   "name": "PepsiCo Inc",                       "weight": 3.83},
+    {"ticker": "AMGN",  "name": "Amgen Inc",                         "weight": 3.78},
+    {"ticker": "ABT",   "name": "Abbott Laboratories",               "weight": 3.78},
+    {"ticker": "PG",    "name": "Procter & Gamble Co",               "weight": 3.70},
+    {"ticker": "UNH",   "name": "UnitedHealth Group Inc",            "weight": 3.64},
+    {"ticker": "QCOM",  "name": "Qualcomm Inc",                      "weight": 3.58},
+    {"ticker": "HD",    "name": "The Home Depot Inc",                "weight": 3.58},
+    {"ticker": "LMT",   "name": "Lockheed Martin Corp",              "weight": 3.29},
+    {"ticker": "BMY",   "name": "Bristol-Myers Squibb Co",           "weight": 3.15},
+    {"ticker": "ACN",   "name": "Accenture PLC",                     "weight": 3.13},
+    {"ticker": "MO",    "name": "Altria Group Inc",                  "weight": 2.95},
+    {"ticker": "CMCSA", "name": "Comcast Corp",                      "weight": 2.69},
+    {"ticker": "EOG",   "name": "EOG Resources Inc",                 "weight": 2.14},
+    {"ticker": "ADP",   "name": "Automatic Data Processing",         "weight": 2.14},
+    {"ticker": "BX",    "name": "Blackstone Inc",                    "weight": 2.14},
+    {"ticker": "SLB",   "name": "SLB Ltd",                           "weight": 2.11},
+    {"ticker": "UPS",   "name": "United Parcel Service Inc",         "weight": 1.85},
+    {"ticker": "OKE",   "name": "ONEOK Inc",                         "weight": 1.56},
+    {"ticker": "TGT",   "name": "Target Corp",                       "weight": 1.43},
+    {"ticker": "FAST",  "name": "Fastenal Co",                       "weight": 1.36},
+    {"ticker": "F",     "name": "Ford Motor Co",                     "weight": 1.18},
+    {"ticker": "FITB",  "name": "Fifth Third Bancorp",               "weight": 1.06},
+    {"ticker": "ADM",   "name": "Archer-Daniels-Midland Co",         "weight": 0.92},
+    {"ticker": "KMB",   "name": "Kimberly-Clark Corp",               "weight": 0.87},
+    {"ticker": "DVN",   "name": "Devon Energy Corp",                 "weight": 0.85},
+    {"ticker": "HSY",   "name": "The Hershey Co",                    "weight": 0.84},
+    {"ticker": "PAYX",  "name": "Paychex Inc",                       "weight": 0.78},
+    {"ticker": "CTRA",  "name": "Coterra Energy Inc",                "weight": 0.73},
+    {"ticker": "CINF",  "name": "Cincinnati Financial Corp",         "weight": 0.63},
+    {"ticker": "DRI",   "name": "Darden Restaurants Inc",            "weight": 0.59},
+    {"ticker": "ARES",  "name": "Ares Management Corp",              "weight": 0.58},
+    {"ticker": "RF",    "name": "Regions Financial Corp",            "weight": 0.58},
+    {"ticker": "GIS",   "name": "General Mills Inc",                 "weight": 0.51},
+    {"ticker": "TROW",  "name": "T. Rowe Price Group Inc",           "weight": 0.51},
+    {"ticker": "SNA",   "name": "Snap-on Inc",                       "weight": 0.49},
+    {"ticker": "BR",    "name": "Broadridge Financial Solutions",    "weight": 0.49},
+    {"ticker": "SWKS",  "name": "Skyworks Solutions Inc",            "weight": 0.46},
+    {"ticker": "PFG",   "name": "Principal Financial Group Inc",     "weight": 0.45},
+    {"ticker": "APA",   "name": "APA Corp",                          "weight": 0.42},
+    {"ticker": "EWBC",  "name": "East West Bancorp Inc",             "weight": 0.38},
+    {"ticker": "AFG",   "name": "American Financial Group Inc",      "weight": 0.38},
+    {"ticker": "IPG",   "name": "Interpublic Group of Companies",    "weight": 0.37},
+    {"ticker": "BBY",   "name": "Best Buy Co Inc",                   "weight": 0.32},
+    {"ticker": "WSO",   "name": "Watsco Inc",                        "weight": 0.32},
+    {"ticker": "FNF",   "name": "Fidelity National Financial Inc",   "weight": 0.31},
+    {"ticker": "CMA",   "name": "Comerica Inc",                      "weight": 0.31},
+    {"ticker": "ALV",   "name": "Autoliv Inc",                       "weight": 0.31},
+    {"ticker": "MTN",   "name": "Vail Resorts Inc",                  "weight": 0.25},
+    {"ticker": "RDN",   "name": "Radian Group Inc",                  "weight": 0.21},
+    {"ticker": "FMC",   "name": "FMC Corp",                          "weight": 0.21},
+    {"ticker": "NXST",  "name": "Nexstar Media Group Inc",           "weight": 0.21},
+    {"ticker": "COLB",  "name": "Columbia Banking System Inc",       "weight": 0.21},
+    {"ticker": "OZK",   "name": "Bank OZK",                          "weight": 0.20},
+    {"ticker": "RHI",   "name": "Robert Half Inc",                   "weight": 0.20},
+    {"ticker": "WHR",   "name": "Whirlpool Corp",                    "weight": 0.18},
+    {"ticker": "MC",    "name": "Moelis & Co",                       "weight": 0.17},
+    {"ticker": "MSM",   "name": "MSC Industrial Direct Co Inc",      "weight": 0.15},
+    {"ticker": "IBOC",  "name": "International Bancshares Corp",     "weight": 0.14},
+    {"ticker": "FLO",   "name": "Flowers Foods Inc",                 "weight": 0.14},
+    {"ticker": "FHI",   "name": "Federated Hermes Inc",              "weight": 0.14},
+    {"ticker": "WU",    "name": "Western Union Co",                  "weight": 0.13},
+    {"ticker": "CATY",  "name": "Cathay General Bancorp",            "weight": 0.13},
+    {"ticker": "SIG",   "name": "Signet Jewelers Ltd",               "weight": 0.12},
+    {"ticker": "MUR",   "name": "Murphy Oil Corp",                   "weight": 0.12},
+    {"ticker": "APAM",  "name": "Artisan Partners Asset Mgmt",       "weight": 0.12},
+    {"ticker": "CVBF",  "name": "CVB Financial Corp",                "weight": 0.10},
+    {"ticker": "NSP",   "name": "Insperity Inc",                     "weight": 0.10},
+    {"ticker": "BANR",  "name": "Banner Corp",                       "weight": 0.09},
+    {"ticker": "CNS",   "name": "Cohen & Steers Inc",                "weight": 0.09},
+    {"ticker": "WEN",   "name": "The Wendy's Co",                    "weight": 0.08},
+    {"ticker": "OFG",   "name": "OFG Bancorp",                       "weight": 0.08},
+    {"ticker": "HUN",   "name": "Huntsman Corp",                     "weight": 0.08},
+    {"ticker": "CHCO",  "name": "City Holding Co",                   "weight": 0.07},
+    {"ticker": "FCF",   "name": "First Commonwealth Financial",      "weight": 0.07},
+    {"ticker": "NWBI",  "name": "Northwest Bancshares Inc",          "weight": 0.07},
+    {"ticker": "LKFN",  "name": "Lakeland Financial Corp",           "weight": 0.06},
+    {"ticker": "STBA",  "name": "S&T Bancorp Inc",                   "weight": 0.06},
+    {"ticker": "BKE",   "name": "The Buckle Inc",                    "weight": 0.05},
+    {"ticker": "CRI",   "name": "Carter's Inc",                      "weight": 0.05},
+    {"ticker": "GABC",  "name": "German American Bancorp Inc",       "weight": 0.05},
+    {"ticker": "VRTS",  "name": "Virtus Investment Partners Inc",    "weight": 0.05},
+    {"ticker": "CNA",   "name": "CNA Financial Corp",                "weight": 0.04},
+    {"ticker": "PFBC",  "name": "Preferred Bank",                    "weight": 0.04},
+]
+
 # Cache
 cache = {"data": None, "timestamp": 0}
+schd_cache = {"data": None, "timestamp": 0}
+intersection_cache = {"data": None, "timestamp": 0}
 CACHE_DURATION = 600  # 10 minutes
 cache_lock = threading.Lock()
+schd_cache_lock = threading.Lock()
+intersection_cache_lock = threading.Lock()
 
 
 def fetch_single_ticker(ticker):
@@ -126,11 +221,12 @@ def fetch_single_ticker(ticker):
         high52 = getattr(fi, "year_high", None)
         # Get dividend yield from info (not available in fast_info)
         info = tk.info
-        div_yield = info.get("dividendYield")
-        # dividendYield from yfinance info is already in percentage form (e.g. 0.41 = 0.41%)
+        # trailingAnnualDividendYield is consistently a decimal (0.0306 = 3.06%)
+        raw_yield = info.get("trailingAnnualDividendYield")
+        div_yield = round(raw_yield * 100, 2) if raw_yield else None
         return ticker, {
             "price": round(price, 2) if price else None,
-            "yield": round(div_yield, 2) if div_yield else None,
+            "yield": div_yield,
             "fiftyTwoWeekLow": round(low52, 2) if low52 else None,
             "fiftyTwoWeekHigh": round(high52, 2) if high52 else None,
         }
@@ -139,13 +235,13 @@ def fetch_single_ticker(ticker):
         return ticker, None
 
 
-def fetch_holdings_data():
+def fetch_fund_data(holdings_list, fund_cache, fund_cache_lock):
     now = time.time()
-    with cache_lock:
-        if cache["data"] and (now - cache["timestamp"]) < CACHE_DURATION:
-            return cache["data"]
+    with fund_cache_lock:
+        if fund_cache["data"] and (now - fund_cache["timestamp"]) < CACHE_DURATION:
+            return fund_cache["data"]
 
-    tickers = [h["ticker"] for h in DGRO_HOLDINGS]
+    tickers = [h["ticker"] for h in holdings_list]
     infos = {}
 
     with ThreadPoolExecutor(max_workers=20) as executor:
@@ -156,7 +252,7 @@ def fetch_holdings_data():
                 infos[ticker] = data
 
     results = []
-    for i, holding in enumerate(DGRO_HOLDINGS):
+    for i, holding in enumerate(holdings_list):
         ticker = holding["ticker"]
         info = infos.get(ticker)
         if info:
@@ -189,9 +285,101 @@ def fetch_holdings_data():
                 "varianceFromLow": None,
             })
 
-    with cache_lock:
-        cache["data"] = results
-        cache["timestamp"] = time.time()
+    with fund_cache_lock:
+        fund_cache["data"] = results
+        fund_cache["timestamp"] = time.time()
+
+    return results
+
+
+def fetch_holdings_data():
+    return fetch_fund_data(DGRO_HOLDINGS, cache, cache_lock)
+
+
+def fetch_schd_data():
+    return fetch_fund_data(SCHD_HOLDINGS, schd_cache, schd_cache_lock)
+
+
+# 25 stocks present in both DGRO and SCHD
+INTERSECTION_HOLDINGS = [
+    {"ticker": "CVX",   "name": "Chevron Corp",               "dgroWeight": 1.62, "schdWeight": 4.66},
+    {"ticker": "MRK",   "name": "Merck & Co Inc",             "dgroWeight": 1.58, "schdWeight": 4.08},
+    {"ticker": "VZ",    "name": "Verizon Communications",     "dgroWeight": 1.38, "schdWeight": 4.03},
+    {"ticker": "KO",    "name": "Coca-Cola Co",               "dgroWeight": 1.45, "schdWeight": 3.98},
+    {"ticker": "TXN",   "name": "Texas Instruments Inc",      "dgroWeight": 1.32, "schdWeight": 3.86},
+    {"ticker": "PEP",   "name": "PepsiCo Inc",                "dgroWeight": 1.42, "schdWeight": 3.83},
+    {"ticker": "PG",    "name": "Procter & Gamble Co",        "dgroWeight": 1.98, "schdWeight": 3.70},
+    {"ticker": "QCOM",  "name": "Qualcomm Inc",               "dgroWeight": 1.18, "schdWeight": 3.58},
+    {"ticker": "HD",    "name": "The Home Depot Inc",         "dgroWeight": 2.21, "schdWeight": 3.58},
+    {"ticker": "BMY",   "name": "Bristol-Myers Squibb Co",    "dgroWeight": 1.25, "schdWeight": 3.15},
+    {"ticker": "CMCSA", "name": "Comcast Corp",               "dgroWeight": 1.35, "schdWeight": 2.69},
+    {"ticker": "EOG",   "name": "EOG Resources Inc",          "dgroWeight": 0.54, "schdWeight": 2.14},
+    {"ticker": "ADP",   "name": "Automatic Data Processing",  "dgroWeight": 0.69, "schdWeight": 2.14},
+    {"ticker": "OKE",   "name": "ONEOK Inc",                  "dgroWeight": 0.13, "schdWeight": 1.56},
+    {"ticker": "TGT",   "name": "Target Corp",                "dgroWeight": 0.67, "schdWeight": 1.43},
+    {"ticker": "FAST",  "name": "Fastenal Co",                "dgroWeight": 0.26, "schdWeight": 1.36},
+    {"ticker": "F",     "name": "Ford Motor Co",              "dgroWeight": 0.51, "schdWeight": 1.18},
+    {"ticker": "FITB",  "name": "Fifth Third Bancorp",        "dgroWeight": 0.36, "schdWeight": 1.06},
+    {"ticker": "KMB",   "name": "Kimberly-Clark Corp",        "dgroWeight": 0.22, "schdWeight": 0.87},
+    {"ticker": "PAYX",  "name": "Paychex Inc",                "dgroWeight": 0.27, "schdWeight": 0.78},
+    {"ticker": "CINF",  "name": "Cincinnati Financial Corp",  "dgroWeight": 0.11, "schdWeight": 0.63},
+    {"ticker": "RF",    "name": "Regions Financial Corp",     "dgroWeight": 0.34, "schdWeight": 0.58},
+    {"ticker": "TROW",  "name": "T. Rowe Price Group Inc",    "dgroWeight": 0.19, "schdWeight": 0.51},
+    {"ticker": "FNF",   "name": "Fidelity National Financial","dgroWeight": 0.09, "schdWeight": 0.31},
+    {"ticker": "CMA",   "name": "Comerica Inc",               "dgroWeight": 0.08, "schdWeight": 0.31},
+]
+
+
+def fetch_intersection_data():
+    now = time.time()
+    with intersection_cache_lock:
+        if intersection_cache["data"] and (now - intersection_cache["timestamp"]) < CACHE_DURATION:
+            return intersection_cache["data"]
+
+    tickers = [h["ticker"] for h in INTERSECTION_HOLDINGS]
+    infos = {}
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {executor.submit(fetch_single_ticker, t): t for t in tickers}
+        for future in as_completed(futures):
+            ticker, data = future.result()
+            if data:
+                infos[ticker] = data
+
+    results = []
+    for holding in INTERSECTION_HOLDINGS:
+        ticker = holding["ticker"]
+        info = infos.get(ticker)
+        if info:
+            price = info["price"]
+            low52 = info["fiftyTwoWeekLow"]
+            variance = round((price - low52) / low52 * 100, 2) if price and low52 and low52 > 0 else None
+            results.append({
+                "ticker":          ticker,
+                "name":            holding["name"],
+                "dgroWeight":      holding["dgroWeight"],
+                "schdWeight":      holding["schdWeight"],
+                "price":           info["price"],
+                "yield":           info["yield"],
+                "fiftyTwoWeekLow": info["fiftyTwoWeekLow"],
+                "fiftyTwoWeekHigh":info["fiftyTwoWeekHigh"],
+                "varianceFromLow": variance,
+            })
+        else:
+            results.append({
+                "ticker":          ticker,
+                "name":            holding["name"],
+                "dgroWeight":      holding["dgroWeight"],
+                "schdWeight":      holding["schdWeight"],
+                "price":           None,
+                "yield":           None,
+                "fiftyTwoWeekLow": None,
+                "fiftyTwoWeekHigh":None,
+                "varianceFromLow": None,
+            })
+
+    with intersection_cache_lock:
+        intersection_cache["data"] = results
+        intersection_cache["timestamp"] = time.time()
 
     return results
 
@@ -201,6 +389,16 @@ def index():
     return send_from_directory("public", "index.html")
 
 
+@app.route("/schd")
+def schd():
+    return send_from_directory("public", "schd.html")
+
+
+@app.route("/intersection")
+def intersection():
+    return send_from_directory("public", "intersection.html")
+
+
 @app.route("/api/holdings")
 def get_holdings():
     try:
@@ -208,6 +406,30 @@ def get_holdings():
         return jsonify({
             "holdings": data,
             "lastUpdated": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(cache["timestamp"]))
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schd-holdings")
+def get_schd_holdings():
+    try:
+        data = fetch_schd_data()
+        return jsonify({
+            "holdings": data,
+            "lastUpdated": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(schd_cache["timestamp"]))
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/intersection-holdings")
+def get_intersection_holdings():
+    try:
+        data = fetch_intersection_data()
+        return jsonify({
+            "holdings": data,
+            "lastUpdated": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(intersection_cache["timestamp"]))
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

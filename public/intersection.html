@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dividend growth stocks based on DGRO</title>
+  <title>DGRO ∩ SCHD — Shared Holdings</title>
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,7 +23,8 @@
       font-weight: 700;
       color: #ffffff;
     }
-    header h1 span { color: #4fc3f7; }
+    header h1 .dgro { color: #4fc3f7; }
+    header h1 .schd { color: #81c784; }
     .subtitle {
       color: #8899aa;
       margin-top: 4px;
@@ -71,16 +72,17 @@
       font-size: 14px;
       table-layout: fixed;
     }
-    col.col-rank   { width: 48px; }
-    col.col-ticker { width: 72px; }
-    col.col-name   { width: 180px; }
-    col.col-weight { width: 110px; }
-    col.col-price  { width: 90px; }
-    col.col-yield  { width: 80px; }
-    col.col-low    { width: 90px; }
-    col.col-high   { width: 90px; }
-    col.col-range  { width: 100px; }
-    col.col-var    { width: 110px; }
+    col.col-rank        { width: 48px; }
+    col.col-ticker      { width: 72px; }
+    col.col-name        { width: 180px; }
+    col.col-dgro-weight { width: 110px; }
+    col.col-schd-weight { width: 110px; }
+    col.col-price       { width: 90px; }
+    col.col-yield       { width: 80px; }
+    col.col-low         { width: 90px; }
+    col.col-high        { width: 90px; }
+    col.col-range       { width: 100px; }
+    col.col-var         { width: 110px; }
     thead th {
       background: #1a2634;
       padding: 10px 8px;
@@ -98,10 +100,12 @@
       top: 0;
       z-index: 1;
     }
+    thead th.th-dgro { color: #4fc3f7; }
+    thead th.th-schd { color: #81c784; }
     thead th:first-child,
     thead th:nth-child(2),
     thead th:nth-child(3) { text-align: left; }
-    thead th:hover { color: #4fc3f7; }
+    thead th:hover { color: #e0e0e0; }
     thead th .sort-arrow { margin-left: 4px; font-size: 10px; }
     tbody tr {
       border-bottom: 1px solid #1e3040;
@@ -157,6 +161,26 @@
     }
     .yield-cell { color: #81c784; }
     .price-cell { color: #ffffff; font-weight: 600; }
+    .dgro-weight-cell { color: #4fc3f7; }
+    .schd-weight-cell { color: #81c784; }
+    .weight-bar-dgro {
+      display: inline-block;
+      height: 4px;
+      background: #4fc3f7;
+      border-radius: 2px;
+      margin-left: 6px;
+      vertical-align: middle;
+      opacity: 0.6;
+    }
+    .weight-bar-schd {
+      display: inline-block;
+      height: 4px;
+      background: #81c784;
+      border-radius: 2px;
+      margin-left: 6px;
+      vertical-align: middle;
+      opacity: 0.6;
+    }
     .loading-overlay {
       display: flex;
       flex-direction: column;
@@ -193,26 +217,17 @@
     }
     .nav-link:hover { background: #1a2e3e; color: #e0e0e0; }
     .nav-link.active { background: #1a2e3e; color: #4fc3f7; }
-    .weight-bar {
-      display: inline-block;
-      height: 4px;
-      background: #4fc3f7;
-      border-radius: 2px;
-      margin-left: 8px;
-      vertical-align: middle;
-      opacity: 0.6;
-    }
   </style>
 </head>
 <body>
   <header>
-    <h1>Dividend growth stocks based on <span>DGRO</span></h1>
-    <div class="subtitle">Inspired by DGRO iShares Core Dividend Growth ETF</div>
+    <h1><span class="dgro">DGRO</span> <span style="color:#8899aa">∩</span> <span class="schd">SCHD</span> — Shared Holdings</h1>
+    <div class="subtitle">25 stocks held by both iShares DGRO and Schwab SCHD dividend ETFs</div>
   </header>
   <nav class="page-nav">
-    <a href="/" class="nav-link active">DGRO</a>
+    <a href="/" class="nav-link">DGRO</a>
     <a href="/schd" class="nav-link">SCHD</a>
-    <a href="/intersection" class="nav-link">DGRO ∩ SCHD</a>
+    <a href="/intersection" class="nav-link active">DGRO ∩ SCHD</a>
   </nav>
   <div class="meta-bar">
     <div class="status">
@@ -227,14 +242,15 @@
   <div class="table-container">
     <div id="loading" class="loading-overlay">
       <div class="spinner"></div>
-      <div style="color: #6688aa;">Fetching market data for 98 holdings...</div>
+      <div style="color: #6688aa;">Fetching market data for 25 holdings...</div>
     </div>
     <table id="holdingsTable" style="display:none;">
       <colgroup>
         <col class="col-rank">
         <col class="col-ticker">
         <col class="col-name">
-        <col class="col-weight">
+        <col class="col-dgro-weight">
+        <col class="col-schd-weight">
         <col class="col-price">
         <col class="col-yield">
         <col class="col-low">
@@ -247,7 +263,8 @@
           <th data-col="rank"># <span class="sort-arrow"></span></th>
           <th data-col="ticker">Ticker <span class="sort-arrow"></span></th>
           <th data-col="name">Company <span class="sort-arrow"></span></th>
-          <th data-col="weight">Weight% <span class="sort-arrow"></span></th>
+          <th data-col="dgroWeight" class="th-dgro">DGRO Wt% <span class="sort-arrow"></span></th>
+          <th data-col="schdWeight" class="th-schd">SCHD Wt% <span class="sort-arrow"></span></th>
           <th data-col="price">Price <span class="sort-arrow"></span></th>
           <th data-col="yield">Yield% <span class="sort-arrow"></span></th>
           <th data-col="fiftyTwoWeekLow">52W Low <span class="sort-arrow"></span></th>
@@ -262,14 +279,14 @@
 
   <script>
     let holdingsData = [];
-    let sortCol = 'rank';
-    let sortAsc = true;
+    let sortCol = 'schdWeight';
+    let sortAsc = false;
 
     async function fetchData() {
       document.getElementById('statusDot').className = 'dot loading';
       document.getElementById('statusText').textContent = 'Fetching data...';
       try {
-        const res = await fetch('/api/holdings');
+        const res = await fetch('/api/intersection-holdings');
         const json = await res.json();
         holdingsData = json.holdings;
         document.getElementById('loading').style.display = 'none';
@@ -292,7 +309,7 @@
 
     function getVarianceColor(variance) {
       if (variance === null) return { bg: '#2d4a5e', text: '#888' };
-      if (variance < 5) return { bg: '#1b5e20', text: '#81c784' };
+      if (variance < 5)  return { bg: '#1b5e20', text: '#81c784' };
       if (variance < 15) return { bg: '#33691e', text: '#aed581' };
       if (variance < 30) return { bg: '#4a3800', text: '#ffd54f' };
       if (variance < 50) return { bg: '#4e2a00', text: '#ffb74d' };
@@ -317,19 +334,20 @@
       });
 
       const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = filtered.map(h => {
+      tbody.innerHTML = filtered.map((h, i) => {
         const vc = getVarianceColor(h.varianceFromLow);
         const rangePercent = (h.fiftyTwoWeekLow && h.fiftyTwoWeekHigh && h.price)
           ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
           : 0;
-        const maxWeight = 3.5;
-        const barWidth = Math.min((h.weight / maxWeight) * 36, 36);
+        const dgroBarWidth = Math.min((h.dgroWeight / 3.5) * 30, 30);
+        const schdBarWidth = Math.min((h.schdWeight / 5.0) * 30, 30);
 
         return `<tr>
-          <td>${h.rank}</td>
+          <td>${i + 1}</td>
           <td>${h.ticker}</td>
           <td>${h.name}</td>
-          <td>${h.weight.toFixed(2)}%<span class="weight-bar" style="width:${barWidth}px"></span></td>
+          <td class="dgro-weight-cell">${h.dgroWeight.toFixed(2)}%<span class="weight-bar-dgro" style="width:${dgroBarWidth}px"></span></td>
+          <td class="schd-weight-cell">${h.schdWeight.toFixed(2)}%<span class="weight-bar-schd" style="width:${schdBarWidth}px"></span></td>
           <td class="price-cell">${h.price !== null ? '$' + h.price.toFixed(2) : '—'}</td>
           <td class="yield-cell">${h.yield !== null ? h.yield.toFixed(2) + '%' : '—'}</td>
           <td>${h.fiftyTwoWeekLow !== null ? '$' + h.fiftyTwoWeekLow.toFixed(2) : '—'}</td>
@@ -347,7 +365,6 @@
         </tr>`;
       }).join('');
 
-      // Update sort arrows
       document.querySelectorAll('thead th').forEach(th => {
         const arrow = th.querySelector('.sort-arrow');
         if (!arrow) return;
@@ -359,7 +376,6 @@
       });
     }
 
-    // Sort on header click
     document.querySelectorAll('thead th[data-col]').forEach(th => {
       if (th.dataset.col === 'range') return;
       th.addEventListener('click', () => {
@@ -368,23 +384,22 @@
           sortAsc = !sortAsc;
         } else {
           sortCol = col;
-          sortAsc = col === 'rank' || col === 'ticker' || col === 'name';
+          sortAsc = col === 'ticker' || col === 'name';
         }
         renderTable();
       });
     });
 
-    // Search
     document.getElementById('searchInput').addEventListener('input', renderTable);
 
-    // Initial fetch and auto-refresh every 60 s (Finnhub real-time cadence)
     fetchData();
     setInterval(fetchData, 60 * 1000);
   </script>
 
   <footer style="text-align:center; padding: 18px 16px 28px; font-size: 11px; color: #556677; line-height: 1.6;">
     Prices update every ~2 min during US market hours (Mon–Fri 9:30 am – 4:00 pm ET), otherwise reflect last close. &nbsp;·&nbsp;
-    52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values.
+    52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values. &nbsp;·&nbsp;
+    DGRO weights per iShares · SCHD weights per Schwab (post-March 2026 reconstitution).
   </footer>
 </body>
 </html>

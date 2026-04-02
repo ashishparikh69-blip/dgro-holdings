@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dividend growth stocks based on DGRO</title>
+  <title>Dividend growth stocks based on SCHD</title>
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -206,12 +206,12 @@
 </head>
 <body>
   <header>
-    <h1>Dividend growth stocks based on <span>DGRO</span></h1>
-    <div class="subtitle">Inspired by DGRO iShares Core Dividend Growth ETF</div>
+    <h1>Dividend growth stocks based on <span>SCHD</span></h1>
+    <div class="subtitle">Inspired by SCHD Schwab U.S. Dividend Equity ETF</div>
   </header>
   <nav class="page-nav">
-    <a href="/" class="nav-link active">DGRO</a>
-    <a href="/schd" class="nav-link">SCHD</a>
+    <a href="/" class="nav-link">DGRO</a>
+    <a href="/schd" class="nav-link active">SCHD</a>
     <a href="/intersection" class="nav-link">DGRO ∩ SCHD</a>
   </nav>
   <div class="meta-bar">
@@ -227,7 +227,7 @@
   <div class="table-container">
     <div id="loading" class="loading-overlay">
       <div class="spinner"></div>
-      <div style="color: #6688aa;">Fetching market data for 98 holdings...</div>
+      <div style="color: #6688aa;">Fetching market data for 89 holdings...</div>
     </div>
     <table id="holdingsTable" style="display:none;">
       <colgroup>
@@ -269,7 +269,7 @@
       document.getElementById('statusDot').className = 'dot loading';
       document.getElementById('statusText').textContent = 'Fetching data...';
       try {
-        const res = await fetch('/api/holdings');
+        const res = await fetch('/api/schd-holdings');
         const json = await res.json();
         holdingsData = json.holdings;
         document.getElementById('loading').style.display = 'none';
@@ -322,7 +322,7 @@
         const rangePercent = (h.fiftyTwoWeekLow && h.fiftyTwoWeekHigh && h.price)
           ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
           : 0;
-        const maxWeight = 3.5;
+        const maxWeight = 5.0;
         const barWidth = Math.min((h.weight / maxWeight) * 36, 36);
 
         return `<tr>
@@ -377,14 +377,15 @@
     // Search
     document.getElementById('searchInput').addEventListener('input', renderTable);
 
-    // Initial fetch and auto-refresh every 60 s (Finnhub real-time cadence)
+    // Initial fetch and auto-refresh every 60 s
     fetchData();
     setInterval(fetchData, 60 * 1000);
   </script>
 
   <footer style="text-align:center; padding: 18px 16px 28px; font-size: 11px; color: #556677; line-height: 1.6;">
     Prices update every ~2 min during US market hours (Mon–Fri 9:30 am – 4:00 pm ET), otherwise reflect last close. &nbsp;·&nbsp;
-    52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values.
+    52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values. &nbsp;·&nbsp;
+    Holdings reflect post-March 2026 SCHD reconstitution.
   </footer>
 </body>
 </html>
