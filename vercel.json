@@ -5,9 +5,11 @@
     "api/intersection-holdings.py": { "maxDuration": 60 }
   },
   "routes": [
-    { "src": "/api/holdings",             "dest": "/api/holdings.py" },
-    { "src": "/api/schd-holdings",        "dest": "/api/schd-holdings.py" },
-    { "src": "/api/intersection-holdings","dest": "/api/intersection-holdings.py" },
-    { "src": "/(.*)",               "dest": "/public/$1" }
+    { "src": "/api/holdings",              "dest": "/api/holdings.py" },
+    { "src": "/api/schd-holdings",         "dest": "/api/schd-holdings.py" },
+    { "src": "/api/intersection-holdings", "dest": "/api/intersection-holdings.py" },
+    { "src": "/schd",                      "dest": "/public/schd.html" },
+    { "src": "/intersection",              "dest": "/public/intersection.html" },
+    { "src": "/(.*)",                      "dest": "/public/$1" }
   ]
 }
