@@ -1,15 +1,15 @@
 {
   "functions": {
-    "api/holdings.py":       { "maxDuration": 60 },
-    "api/schd-holdings.py":        { "maxDuration": 60 },
+    "api/holdings.py":              { "maxDuration": 60 },
+    "api/schd-holdings.py":         { "maxDuration": 60 },
     "api/intersection-holdings.py": { "maxDuration": 60 }
   },
-  "routes": [
-    { "src": "/api/holdings",              "dest": "/api/holdings.py" },
-    { "src": "/api/schd-holdings",         "dest": "/api/schd-holdings.py" },
-    { "src": "/api/intersection-holdings", "dest": "/api/intersection-holdings.py" },
-    { "src": "/schd",                      "dest": "/public/schd.html" },
-    { "src": "/intersection",              "dest": "/public/intersection.html" },
-    { "src": "/(.*)",                      "dest": "/public/$1" }
+  "rewrites": [
+    { "source": "/api/holdings",              "destination": "/api/holdings.py" },
+    { "source": "/api/schd-holdings",         "destination": "/api/schd-holdings.py" },
+    { "source": "/api/intersection-holdings", "destination": "/api/intersection-holdings.py" },
+    { "source": "/schd",                      "destination": "/public/schd.html" },
+    { "source": "/intersection",              "destination": "/public/intersection.html" },
+    { "source": "/:path*",                    "destination": "/public/:path*" }
   ]
 }
