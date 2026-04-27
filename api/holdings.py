@@ -57,6 +57,30 @@ DIV_GROWTH_1Y = {
     "OGN":   2.8, "UGI":   0.0, "FAF":   2.8,
 }
 
+# 5-year dividend growth rate CAGR (%) — updated Apr 2026
+DIV_GROWTH_5Y = {
+    "AAPL":  5.8, "MSFT": 10.7, "JPM":  14.2, "ABBV":  8.4, "AVGO": 17.5,
+    "HD":   13.8, "JNJ":   5.8, "PG":    5.8, "XOM":   3.5, "CVX":   6.2,
+    "MRK":   9.1, "PFE":   0.0, "CSCO":  3.1, "KO":    4.8, "PEP":   7.2,
+    "VZ":    2.0, "CMCSA":12.1, "TXN":  12.2, "PM":    3.5, "BMY":   9.8,
+    "UNP":  12.1, "QCOM":  7.2, "RTX":   7.8, "LOW":  19.2, "MDT":   4.1,
+    "MS":   16.8, "BLK":   9.8, "SCHW": 18.2, "C":    20.0, "CB":    4.8,
+    "GS":   25.0, "ADI":  12.8, "DE":   14.8, "SO":    3.2, "DUK":   2.5,
+    "ITW":   7.8, "CI":   12.8, "USB":   3.2, "PNC":   8.2, "ADP":  13.2,
+    "TGT":   9.2, "MMM":   0.0, "EMR":   2.8, "FIS":   0.0, "APD":   8.2,
+    "NSC":  10.8, "CME":  10.2, "ICE":  11.2, "EOG":  22.8, "CL":    4.8,
+    "WMB":   5.8, "F":     0.0, "GM":    0.0, "MET":   9.8, "PRU":   4.8,
+    "AIG":  10.8, "TRV":   4.8, "ALL":   4.8, "D":     2.1, "SRE":   4.8,
+    "AEP":   5.8, "WEC":   6.8, "XEL":   6.1, "ETR":   3.8, "PPL":   1.2,
+    "ED":    2.8, "FITB":  7.8, "KEY":   2.8, "RF":    9.8, "CFG":   9.8,
+    "HBAN":  5.8, "NTRS":  5.8, "STT":   7.8, "IP":    2.8, "NUE":   1.8,
+    "PAYX": 12.8, "FAST": 11.8, "GPC":   5.8, "OMC":   7.8, "HPQ":   7.8,
+    "KMB":   3.8, "SYY":   5.8, "CAH":   1.2, "TROW":  4.8, "BEN":   3.8,
+    "LEN":  28.0, "DHI":  32.0, "PHM":  40.0, "OKE":   3.8, "KMI":  15.0,
+    "CINF":  7.8, "AMCR":  4.8, "FNF":   9.8, "CMA":   2.8, "ZION":  4.8,
+    "OGN":   0.0, "UGI":   0.0, "FAF":   5.8,
+}
+
 # Trailing 12-month dividend yields (%) — updated Mar 2026 via Yahoo Finance trailingAnnualDividendYield
 DIVIDEND_YIELDS = {
     "AAPL":  0.52, "MSFT":  0.83, "JPM":   2.28, "ABBV":  3.55, "AVGO":  1.23,
@@ -374,6 +398,7 @@ def get_holdings_data():
             "yield":            DIVIDEND_YIELDS.get(ticker),
             "payoutRatio":      PAYOUT_RATIOS.get(ticker),
             "divGrowth1Y":      DIV_GROWTH_1Y.get(ticker),
+            "divGrowth5Y":      DIV_GROWTH_5Y.get(ticker),
             "fiftyTwoWeekLow":  low52,
             "fiftyTwoWeekHigh": high52,
             "varianceFromLow":  variance,

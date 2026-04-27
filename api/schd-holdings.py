@@ -53,6 +53,28 @@ DIV_GROWTH_1Y = {
     "GABC":  2.8, "VRTS":  4.8, "CNA":   2.8, "PFBC":  4.8,
 }
 
+# 5-year dividend growth rate CAGR (%) — updated Apr 2026
+DIV_GROWTH_5Y = {
+    "CVX":   6.2, "COP":  15.8, "MRK":   9.1, "VZ":    2.0, "KO":    4.8,
+    "TXN":  12.2, "PEP":   7.2, "AMGN":  8.8, "ABT":  10.2, "PG":    5.8,
+    "UNH":  18.2, "QCOM":  7.2, "HD":   13.8, "LMT":   7.8, "BMY":   9.8,
+    "ACN":  10.8, "MO":    5.8, "CMCSA":12.1, "EOG":  22.8, "ADP":  13.2,
+    "BX":   25.0, "SLB":   4.8, "UPS":  12.8, "OKE":   3.8, "TGT":   9.2,
+    "FAST": 11.8, "F":     0.0, "FITB":  7.8, "ADM":   5.8, "KMB":   3.8,
+    "DVN":  38.0, "HSY":   8.2, "PAYX": 12.8, "CTRA": 25.0, "CINF":  7.8,
+    "DRI":  11.8, "ARES": 25.0, "RF":    9.8, "GIS":   4.8, "TROW":  4.8,
+    "SNA":  11.8, "BR":   10.8, "SWKS": 13.8, "PFG":   6.2, "APA":   0.0,
+    "EWBC": 14.8, "AFG":  12.8, "IPG":   9.8, "BBY":  14.8, "WSO":  12.8,
+    "FNF":   9.8, "CMA":   2.8, "ALV":   8.8, "MTN":   9.8, "RDN":  25.0,
+    "FMC":   5.8, "NXST": 15.8, "COLB":  4.8, "OZK":   4.8, "RHI":   9.8,
+    "WHR":   5.8, "MC":    8.8, "MSM":   9.8, "IBOC":  5.8, "FLO":   4.8,
+    "FHI":   8.8, "WU":   -5.0, "CATY":  4.8, "SIG":  25.0, "MUR":   4.8,
+    "APAM": 12.8, "CVBF":  4.8, "NSP":   9.8, "BANR":  4.8, "CNS":   9.8,
+    "WEN":   5.8, "OFG":  14.8, "HUN":  -5.0, "CHCO":  4.8, "FCF":   5.8,
+    "NWBI":  2.8, "LKFN":  7.8, "STBA":  4.8, "BKE":   8.8, "CRI":   4.8,
+    "GABC":  5.8, "VRTS":  9.8, "CNA":   3.8, "PFBC":  7.8,
+}
+
 # Trailing 12-month dividend yields (%) — updated Apr 2026
 DIVIDEND_YIELDS = {
     "CVX":   3.40, "COP":   3.50, "MRK":   3.24, "VZ":    5.53, "KO":    3.05,
@@ -340,6 +362,7 @@ def get_holdings_data():
             "yield":            DIVIDEND_YIELDS.get(ticker),
             "payoutRatio":      PAYOUT_RATIOS.get(ticker),
             "divGrowth1Y":      DIV_GROWTH_1Y.get(ticker),
+            "divGrowth5Y":      DIV_GROWTH_5Y.get(ticker),
             "fiftyTwoWeekLow":  low52,
             "fiftyTwoWeekHigh": high52,
             "varianceFromLow":  variance,

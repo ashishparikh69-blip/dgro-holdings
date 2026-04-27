@@ -23,6 +23,15 @@ DIV_GROWTH_1Y = {
     "CINF":  7.8, "RF":    7.8, "TROW": 1.8, "FNF":  7.8, "CMA":   2.8,
 }
 
+# 5-year dividend growth rate CAGR (%) — updated Apr 2026
+DIV_GROWTH_5Y = {
+    "CVX":   6.2, "MRK":   9.1, "VZ":   2.0, "KO":   4.8, "TXN":  12.2,
+    "PEP":   7.2, "PG":    5.8, "QCOM": 7.2, "HD":  13.8, "BMY":   9.8,
+    "CMCSA":12.1, "EOG":  22.8, "ADP": 13.2, "OKE":  3.8, "TGT":   9.2,
+    "FAST": 11.8, "F":     0.0, "FITB": 7.8, "KMB":  3.8, "PAYX": 12.8,
+    "CINF":  7.8, "RF":    9.8, "TROW": 4.8, "FNF":  9.8, "CMA":   2.8,
+}
+
 DIVIDEND_YIELDS = {
     "CVX":   3.40, "MRK":   3.24, "VZ":    5.53, "KO":    3.05, "TXN":   2.95,
     "PEP":   3.52, "PG":    2.41, "QCOM":  2.25, "HD":    2.42, "BMY":   4.28,
@@ -208,6 +217,7 @@ def get_holdings_data():
             "yield":            DIVIDEND_YIELDS.get(ticker),
             "payoutRatio":      PAYOUT_RATIOS.get(ticker),
             "divGrowth1Y":      DIV_GROWTH_1Y.get(ticker),
+            "divGrowth5Y":      DIV_GROWTH_5Y.get(ticker),
             "fiftyTwoWeekLow":  low52,
             "fiftyTwoWeekHigh": high52,
             "varianceFromLow":  variance,

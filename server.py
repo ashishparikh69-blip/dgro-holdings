@@ -225,25 +225,32 @@ def fetch_single_ticker(ticker):
         div_yield = round(raw_yield * 100, 2) if raw_yield else None
         raw_payout = info.get("payoutRatio")
         payout_ratio = round(raw_payout * 100, 1) if raw_payout else None
-        # 1Y dividend growth rate from trailing dividend history
-        div_growth = None
+        # 1Y and 5Y dividend growth rates from trailing dividend history
+        div_growth_1y = None
+        div_growth_5y = None
         try:
             divs = tk.dividends
             if not divs.empty:
                 now = pd.Timestamp.now(tz="UTC")
                 yr1 = now - pd.DateOffset(years=1)
                 yr2 = now - pd.DateOffset(years=2)
+                yr5 = now - pd.DateOffset(years=5)
+                yr6 = now - pd.DateOffset(years=6)
                 recent = float(divs[divs.index >= yr1].sum())
-                prior  = float(divs[(divs.index >= yr2) & (divs.index < yr1)].sum())
-                if prior > 0 and recent > 0:
-                    div_growth = round((recent / prior - 1) * 100, 1)
+                prior1 = float(divs[(divs.index >= yr2) & (divs.index < yr1)].sum())
+                prior5 = float(divs[(divs.index >= yr6) & (divs.index < yr5)].sum())
+                if prior1 > 0 and recent > 0:
+                    div_growth_1y = round((recent / prior1 - 1) * 100, 1)
+                if prior5 > 0 and recent > 0:
+                    div_growth_5y = round(((recent / prior5) ** (1/5) - 1) * 100, 1)
         except Exception:
             pass
         return ticker, {
             "price": round(price, 2) if price else None,
             "yield": div_yield,
             "payoutRatio": payout_ratio,
-            "divGrowth1Y": div_growth,
+            "divGrowth1Y": div_growth_1y,
+            "divGrowth5Y": div_growth_5y,
             "fiftyTwoWeekLow": round(low52, 2) if low52 else None,
             "fiftyTwoWeekHigh": round(high52, 2) if high52 else None,
         }
@@ -287,6 +294,7 @@ def fetch_fund_data(holdings_list, fund_cache, fund_cache_lock):
                 "yield": info["yield"],
                 "payoutRatio": info.get("payoutRatio"),
                 "divGrowth1Y": info.get("divGrowth1Y"),
+                "divGrowth5Y": info.get("divGrowth5Y"),
                 "fiftyTwoWeekLow": info["fiftyTwoWeekLow"],
                 "fiftyTwoWeekHigh": info["fiftyTwoWeekHigh"],
                 "varianceFromLow": variance,
@@ -383,6 +391,7 @@ def fetch_intersection_data():
                 "yield":           info["yield"],
                 "payoutRatio":     info.get("payoutRatio"),
                 "divGrowth1Y":     info.get("divGrowth1Y"),
+                "divGrowth5Y":     info.get("divGrowth5Y"),
                 "fiftyTwoWeekLow": info["fiftyTwoWeekLow"],
                 "fiftyTwoWeekHigh":info["fiftyTwoWeekHigh"],
                 "varianceFromLow": variance,
