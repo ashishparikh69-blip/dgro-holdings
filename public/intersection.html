@@ -81,6 +81,8 @@
     col.col-yield       { width: 80px; }
     col.col-low         { width: 90px; }
     col.col-high        { width: 90px; }
+    col.col-payout      { width: 90px; }
+    col.col-dgr         { width: 90px; }
     col.col-range       { width: 100px; }
     col.col-var         { width: 110px; }
     thead th {
@@ -253,6 +255,8 @@
         <col class="col-schd-weight">
         <col class="col-price">
         <col class="col-yield">
+        <col class="col-payout">
+        <col class="col-dgr">
         <col class="col-low">
         <col class="col-high">
         <col class="col-range">
@@ -267,6 +271,8 @@
           <th data-col="schdWeight" class="th-schd">SCHD Wt% <span class="sort-arrow"></span></th>
           <th data-col="price">Price <span class="sort-arrow"></span></th>
           <th data-col="yield">Yield% <span class="sort-arrow"></span></th>
+          <th data-col="payoutRatio">Payout% <span class="sort-arrow"></span></th>
+          <th data-col="divGrowth1Y">1Y DGR% <span class="sort-arrow"></span></th>
           <th data-col="fiftyTwoWeekLow">52W Low <span class="sort-arrow"></span></th>
           <th data-col="fiftyTwoWeekHigh">52W High <span class="sort-arrow"></span></th>
           <th data-col="range">52W Range</th>
@@ -350,6 +356,8 @@
           <td class="schd-weight-cell">${h.schdWeight.toFixed(2)}%<span class="weight-bar-schd" style="width:${schdBarWidth}px"></span></td>
           <td class="price-cell">${h.price !== null ? '$' + h.price.toFixed(2) : '—'}</td>
           <td class="yield-cell">${h.yield !== null ? h.yield.toFixed(2) + '%' : '—'}</td>
+          <td>${h.payoutRatio !== null && h.payoutRatio !== undefined ? h.payoutRatio.toFixed(1) + '%' : '—'}</td>
+          <td style="color:${h.divGrowth1Y > 0 ? '#81c784' : h.divGrowth1Y < 0 ? '#ef5350' : '#e0e0e0'}">${h.divGrowth1Y !== null && h.divGrowth1Y !== undefined ? (h.divGrowth1Y > 0 ? '+' : '') + h.divGrowth1Y.toFixed(1) + '%' : '—'}</td>
           <td>${h.fiftyTwoWeekLow !== null ? '$' + h.fiftyTwoWeekLow.toFixed(2) : '—'}</td>
           <td>${h.fiftyTwoWeekHigh !== null ? '$' + h.fiftyTwoWeekHigh.toFixed(2) : '—'}</td>
           <td>

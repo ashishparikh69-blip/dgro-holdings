@@ -7,6 +7,22 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FINNHUB_TOKEN = os.environ.get("FINNHUB_TOKEN", "")
 
+PAYOUT_RATIOS = {
+    "CVX":  48.3, "MRK":  48.1, "VZ":   61.8, "KO":   73.4, "TXN":  53.7,
+    "PEP":  70.2, "PG":   67.1, "QCOM": 35.2, "HD":   54.2, "BMY":  55.3,
+    "CMCSA":33.1, "EOG":  25.4, "ADP":  76.3, "OKE":  73.2, "TGT":  50.1,
+    "FAST": 69.1, "F":    47.8, "FITB": 38.2, "KMB":  73.2, "PAYX": 82.3,
+    "CINF": 43.8, "RF":   38.4, "TROW": 62.3, "FNF":  44.8, "CMA":  34.2,
+}
+
+DIV_GROWTH_1Y = {
+    "CVX":   8.3, "MRK":   5.1, "VZ":   2.1, "KO":   5.2, "TXN":   5.2,
+    "PEP":   7.3, "PG":    5.1, "QCOM": 6.3, "HD":   8.1, "BMY":   3.2,
+    "CMCSA": 7.1, "EOG":   9.8, "ADP": 11.8, "OKE":  3.8, "TGT":   1.8,
+    "FAST":  8.8, "F":    66.7, "FITB": 4.8, "KMB":  1.8, "PAYX":  9.8,
+    "CINF":  7.8, "RF":    7.8, "TROW": 1.8, "FNF":  7.8, "CMA":   2.8,
+}
+
 DIVIDEND_YIELDS = {
     "CVX":   3.40, "MRK":   3.24, "VZ":    5.53, "KO":    3.05, "TXN":   2.95,
     "PEP":   3.52, "PG":    2.41, "QCOM":  2.25, "HD":    2.42, "BMY":   4.28,
@@ -190,6 +206,8 @@ def get_holdings_data():
             "price":            price,
             "priceIsLive":      live_px is not None,
             "yield":            DIVIDEND_YIELDS.get(ticker),
+            "payoutRatio":      PAYOUT_RATIOS.get(ticker),
+            "divGrowth1Y":      DIV_GROWTH_1Y.get(ticker),
             "fiftyTwoWeekLow":  low52,
             "fiftyTwoWeekHigh": high52,
             "varianceFromLow":  variance,

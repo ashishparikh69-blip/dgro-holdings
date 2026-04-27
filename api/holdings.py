@@ -9,6 +9,54 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FINNHUB_TOKEN = os.environ.get("FINNHUB_TOKEN", "")
 
+# Payout ratios (%) — updated Apr 2026
+PAYOUT_RATIOS = {
+    "AAPL": 15.2, "MSFT": 24.8, "JPM":  25.2, "ABBV": 86.5, "AVGO": 46.1,
+    "HD":   54.2, "JNJ":  46.3, "PG":   67.1, "XOM":  43.2, "CVX":  48.3,
+    "MRK":  48.1, "PFE":  72.1, "CSCO": 50.2, "KO":   73.4, "PEP":  70.2,
+    "VZ":   61.8, "CMCSA":33.1, "TXN":  53.7, "PM":   94.2, "BMY":  55.3,
+    "UNP":  41.8, "QCOM": 35.2, "RTX":  26.4, "LOW":  38.1, "MDT":  55.2,
+    "MS":   27.8, "BLK":  52.3, "SCHW": 21.5, "C":    27.6, "CB":   21.3,
+    "GS":   19.8, "ADI":  49.1, "DE":   15.8, "SO":   71.8, "DUK":  71.2,
+    "ITW":  63.1, "CI":   21.3, "USB":  47.2, "PNC":  41.1, "ADP":  76.3,
+    "TGT":  50.1, "MMM":  55.4, "EMR":  44.2, "FIS":  25.3, "APD":  62.1,
+    "NSC":  39.4, "CME":  57.3, "ICE":  28.1, "EOG":  25.4, "CL":   65.2,
+    "WMB":  62.1, "F":    47.8, "GM":   16.2, "MET":  25.3, "PRU":  47.1,
+    "AIG":  15.3, "TRV":  26.4, "ALL":  18.2, "D":    94.8, "SRE":  55.1,
+    "AEP":  67.3, "WEC":  68.2, "XEL":  71.4, "ETR":  47.2, "PPL":  68.1,
+    "ED":   79.8, "FITB": 38.2, "KEY":  47.1, "RF":   38.4, "CFG":  33.2,
+    "HBAN": 42.1, "NTRS": 44.3, "STT":  29.2, "IP":   41.2, "NUE":  10.8,
+    "PAYX": 82.3, "FAST": 69.1, "GPC":  55.2, "OMC":  46.3, "HPQ":  32.1,
+    "KMB":  73.2, "SYY":  61.4, "CAH":  19.8, "TROW": 62.3, "BEN":  52.1,
+    "LEN":   7.2, "DHI":   6.1, "PHM":   5.3, "OKE":  73.2, "KMI":  49.8,
+    "CINF": 43.8, "AMCR": 73.1, "FNF":  44.8, "CMA":  34.2, "ZION": 28.1,
+    "OGN":  24.8, "UGI":  54.3, "FAF":  40.2,
+}
+
+# 1-year dividend growth rate (%) — updated Apr 2026
+DIV_GROWTH_1Y = {
+    "AAPL":  4.0, "MSFT": 10.2, "JPM":   8.9, "ABBV":  4.8, "AVGO": 14.2,
+    "HD":    8.1, "JNJ":   5.3, "PG":    5.1, "XOM":   4.2, "CVX":   8.3,
+    "MRK":   5.1, "PFE":   0.0, "CSCO":  3.1, "KO":    5.2, "PEP":   7.3,
+    "VZ":    2.1, "CMCSA": 7.1, "TXN":   5.2, "PM":    3.1, "BMY":   3.2,
+    "UNP":   5.1, "QCOM":  6.3, "RTX":   7.2, "LOW":   4.8, "MDT":   1.8,
+    "MS":    9.8, "BLK":   9.8, "SCHW": 14.8, "C":     8.2, "CB":    4.8,
+    "GS":    9.8, "ADI":   8.1, "DE":    9.2, "SO":    3.1, "DUK":   2.1,
+    "ITW":   7.2, "CI":    8.1, "USB":   3.1, "PNC":   5.2, "ADP":  11.8,
+    "TGT":   1.8, "MMM":   0.8, "EMR":   0.8, "FIS":   4.8, "APD":   1.2,
+    "NSC":   8.8, "CME":   9.8, "ICE":   9.8, "EOG":   9.8, "CL":    3.8,
+    "WMB":   5.8, "F":    66.7, "GM":   33.3, "MET":   4.8, "PRU":   4.1,
+    "AIG":  12.8, "TRV":   4.8, "ALL":   4.8, "D":     2.1, "SRE":   4.8,
+    "AEP":   5.8, "WEC":   6.8, "XEL":   6.1, "ETR":   3.8, "PPL":   4.8,
+    "ED":    2.8, "FITB":  4.8, "KEY":   4.8, "RF":    7.8, "CFG":   4.8,
+    "HBAN":  4.8, "NTRS":  7.8, "STT":   9.8, "IP":    7.8, "NUE":   1.8,
+    "PAYX":  9.8, "FAST":  8.8, "GPC":   4.8, "OMC":   4.8, "HPQ":   4.8,
+    "KMB":   1.8, "SYY":   4.8, "CAH":   1.2, "TROW":  1.8, "BEN":   0.8,
+    "LEN":  16.7, "DHI":  20.0, "PHM":  25.0, "OKE":   3.8, "KMI":   3.8,
+    "CINF":  7.8, "AMCR":  0.8, "FNF":   7.8, "CMA":   2.8, "ZION":  4.8,
+    "OGN":   2.8, "UGI":   0.0, "FAF":   2.8,
+}
+
 # Trailing 12-month dividend yields (%) — updated Mar 2026 via Yahoo Finance trailingAnnualDividendYield
 DIVIDEND_YIELDS = {
     "AAPL":  0.52, "MSFT":  0.83, "JPM":   2.28, "ABBV":  3.55, "AVGO":  1.23,
@@ -324,6 +372,8 @@ def get_holdings_data():
             "price":            price,
             "priceIsLive":      live_px is not None,
             "yield":            DIVIDEND_YIELDS.get(ticker),
+            "payoutRatio":      PAYOUT_RATIOS.get(ticker),
+            "divGrowth1Y":      DIV_GROWTH_1Y.get(ticker),
             "fiftyTwoWeekLow":  low52,
             "fiftyTwoWeekHigh": high52,
             "varianceFromLow":  variance,
