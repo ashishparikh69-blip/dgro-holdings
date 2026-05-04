@@ -140,14 +140,24 @@
       background: #2d4a5e;
       border-radius: 3px;
       position: relative;
+      overflow: hidden;
+    }
+    .range-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: rgba(79, 195, 247, 0.35);
+      border-radius: 3px;
+      pointer-events: none;
     }
     .range-dot {
       position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+      width: 3px;
+      height: 100%;
+      border-radius: 1px;
       background: #4fc3f7;
-      top: -2px;
+      top: 0;
       transform: translateX(-50%);
     }
     .variance-cell {
@@ -328,9 +338,11 @@
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = filtered.map(h => {
         const vc = getVarianceColor(h.varianceFromLow);
-        const rangePercent = (h.fiftyTwoWeekLow && h.fiftyTwoWeekHigh && h.price)
-          ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
-          : 0;
+        const rangePercent = Math.max(0, Math.min(100,
+          (h.fiftyTwoWeekLow && h.fiftyTwoWeekHigh && h.price && h.fiftyTwoWeekHigh > h.fiftyTwoWeekLow)
+            ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
+            : 0
+        ));
         const maxWeight = 3.5;
         const barWidth = Math.min((h.weight / maxWeight) * 36, 36);
 
@@ -349,6 +361,7 @@
           <td>
             <div class="range-bar">
               <div class="range-track">
+                <div class="range-fill" style="width:${rangePercent}%"></div>
                 <div class="range-dot" style="left:${rangePercent}%"></div>
               </div>
             </div>
