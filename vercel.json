@@ -3,10 +3,12 @@
   "functions": {
     "api/holdings.py":              { "maxDuration": 60 },
     "api/schd-holdings.py":         { "maxDuration": 60 },
-    "api/intersection-holdings.py": { "maxDuration": 60 }
+    "api/intersection-holdings.py": { "maxDuration": 60 },
+    "api/treasury-bonds.py":        { "maxDuration": 60 }
   },
   "rewrites": [
     { "source": "/schd",         "destination": "/schd.html" },
-    { "source": "/intersection", "destination": "/intersection.html" }
+    { "source": "/intersection", "destination": "/intersection.html" },
+    { "source": "/treasury",     "destination": "/treasury.html" }
   ]
 }
