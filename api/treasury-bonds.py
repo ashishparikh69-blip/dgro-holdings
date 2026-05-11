@@ -1,62 +1,77 @@
 from http.server import BaseHTTPRequestHandler
-import json, urllib.request, urllib.error, math
-from datetime import datetime, timezone
+import json, urllib.request, urllib.error, re
+from datetime import datetime, timezone, date
 
 TREASURY_BONDS = [
-    {"cusip": "912810UT3", "type": "20Y Bond", "coupon": 4.625, "maturityDate": "2046-02-15", "issueDate": "2026-03-02"},
-    {"cusip": "912810UQ9", "type": "20Y Bond", "coupon": 4.625, "maturityDate": "2045-11-15", "issueDate": "2025-12-01"},
-    {"cusip": "912810UN6", "type": "20Y Bond", "coupon": 4.875, "maturityDate": "2045-08-15", "issueDate": "2025-09-02"},
-    {"cusip": "912810UL0", "type": "20Y Bond", "coupon": 5.000, "maturityDate": "2045-05-15", "issueDate": "2025-06-02"},
-    {"cusip": "91282CPZ8", "type": "10Y Note", "coupon": 4.125, "maturityDate": "2036-02-15", "issueDate": "2026-02-17"},
-    {"cusip": "91282CPJ4", "type": "10Y Note", "coupon": 4.000, "maturityDate": "2035-11-15", "issueDate": "2025-11-17"},
-    {"cusip": "91282CNT4", "type": "10Y Note", "coupon": 4.250, "maturityDate": "2035-08-15", "issueDate": "2025-08-15"},
-    {"cusip": "91282CNC1", "type": "10Y Note", "coupon": 4.250, "maturityDate": "2035-05-15", "issueDate": "2025-06-16"},
-    {"cusip": "91282CQN4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2033-04-30", "issueDate": "2026-04-30"},
-    {"cusip": "91282CQF1", "type": "7Y Note",  "coupon": 4.250, "maturityDate": "2033-03-31", "issueDate": "2026-03-31"},
-    {"cusip": "91282CPY1", "type": "7Y Note",  "coupon": 4.000, "maturityDate": "2033-01-31", "issueDate": "2026-02-02"},
-    {"cusip": "91282CPQ8", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-12-31", "issueDate": "2025-12-31"},
-    {"cusip": "91282CQC8", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2033-02-28", "issueDate": "2026-03-02"},
-    {"cusip": "91282CPM7", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2032-11-30", "issueDate": "2025-12-01"},
-    {"cusip": "91282CPF2", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2032-10-31", "issueDate": "2025-10-31"},
-    {"cusip": "91282CNZ0", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-09-30", "issueDate": "2025-09-30"},
-    {"cusip": "91282CNW7", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-08-31", "issueDate": "2025-09-02"},
-    {"cusip": "91282CNR8", "type": "7Y Note",  "coupon": 4.000, "maturityDate": "2032-07-31", "issueDate": "2025-07-31"},
-    {"cusip": "91282CNJ6", "type": "7Y Note",  "coupon": 4.000, "maturityDate": "2032-06-30", "issueDate": "2025-06-30"},
-    {"cusip": "91282CNF4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2032-05-31", "issueDate": "2025-06-02"},
+    {"cusip": "912810UT3", "type": "20Y Bond", "coupon": 4.625, "maturityDate": "2046-02-15"},
+    {"cusip": "912810UQ9", "type": "20Y Bond", "coupon": 4.625, "maturityDate": "2045-11-15"},
+    {"cusip": "912810UN6", "type": "20Y Bond", "coupon": 4.875, "maturityDate": "2045-08-15"},
+    {"cusip": "912810UL0", "type": "20Y Bond", "coupon": 5.000, "maturityDate": "2045-05-15"},
+    {"cusip": "91282CPZ8", "type": "10Y Note", "coupon": 4.125, "maturityDate": "2036-02-15"},
+    {"cusip": "91282CPJ4", "type": "10Y Note", "coupon": 4.000, "maturityDate": "2035-11-15"},
+    {"cusip": "91282CNT4", "type": "10Y Note", "coupon": 4.250, "maturityDate": "2035-08-15"},
+    {"cusip": "91282CNC1", "type": "10Y Note", "coupon": 4.250, "maturityDate": "2035-05-15"},
+    {"cusip": "91282CQN4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2033-04-30"},
+    {"cusip": "91282CQF1", "type": "7Y Note",  "coupon": 4.250, "maturityDate": "2033-03-31"},
+    {"cusip": "91282CPY1", "type": "7Y Note",  "coupon": 4.000, "maturityDate": "2033-01-31"},
+    {"cusip": "91282CPQ8", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-12-31"},
+    {"cusip": "91282CQC8", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2033-02-28"},
+    {"cusip": "91282CPM7", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2032-11-30"},
+    {"cusip": "91282CPF2", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2032-10-31"},
+    {"cusip": "91282CNZ0", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-09-30"},
+    {"cusip": "91282CNW7", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-08-31"},
+    {"cusip": "91282CNR8", "type": "7Y Note",  "coupon": 4.000, "maturityDate": "2032-07-31"},
+    {"cusip": "91282CNJ6", "type": "7Y Note",  "coupon": 4.000, "maturityDate": "2032-06-30"},
+    {"cusip": "91282CNF4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2032-05-31"},
 ]
 
-YIELD_CURVE_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/050126?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv"
+FALLBACK_CURVE = {2: 3.95, 3: 3.97, 5: 4.07, 7: 4.24, 10: 4.41, 20: 4.97, 30: 4.98}
 
 
 def fetch_yield_curve():
-    """Fetch the latest Treasury yield curve from treasury.gov CSV."""
+    """Fetch latest Treasury yield curve from treasury.gov XML API."""
     try:
-        req = urllib.request.Request(YIELD_CURVE_URL, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            text = resp.read().decode("utf-8")
-        lines = text.strip().split("\n")
-        if len(lines) < 2:
-            return None
-        headers = [h.strip().strip('"') for h in lines[0].split(",")]
-        last_row = [v.strip().strip('"') for v in lines[-1].split(",")]
-        row_dict = dict(zip(headers, last_row))
+        today = date.today()
+        url = (
+            "https://home.treasury.gov/resource-center/data-chart-center/"
+            "interest-rates/TextView?type=daily_treasury_yield_curve"
+            f"&field_tdr_date_value={today.year}"
+        )
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; bond-tracker/1.0)",
+            "Accept": "text/html",
+        })
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+        rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL)
+        if not rows:
+            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
+        last_data_row = None
+        for row in rows:
+            cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
+            cells = [c.strip() for c in cells]
+            if cells and re.match(r'\d{2}/\d{2}/\d{4}', cells[0]):
+                last_data_row = cells
+        if not last_data_row or len(last_data_row) < 13:
+            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
+        curve_date = last_data_row[0]
+        col_map = [
+            (1, 1/12), (2, 2/12), (3, 3/12), (4, 4/12),
+            (5, 6/12), (6, 1), (7, 2), (8, 3), (9, 5),
+            (10, 7), (11, 10), (12, 20), (13, 30),
+        ]
         curve = {}
-        mapping = {
-            "1 Mo": 1/12, "2 Mo": 2/12, "3 Mo": 0.25, "4 Mo": 4/12,
-            "6 Mo": 0.5, "1 Yr": 1, "2 Yr": 2, "3 Yr": 3, "5 Yr": 5,
-            "7 Yr": 7, "10 Yr": 10, "20 Yr": 20, "30 Yr": 30,
-        }
-        for label, years in mapping.items():
-            val = row_dict.get(label, "")
-            if val:
+        for idx, years in col_map:
+            if idx < len(last_data_row) and last_data_row[idx]:
                 try:
-                    curve[years] = float(val)
+                    curve[years] = float(last_data_row[idx])
                 except ValueError:
                     pass
-        date_str = row_dict.get("Date", "")
-        return {"curve": curve, "date": date_str}
+        if len(curve) < 3:
+            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
+        return {"curve": curve, "date": curve_date, "source": "treasury.gov"}
     except Exception:
-        return None
+        return {"curve": FALLBACK_CURVE, "date": date.today().isoformat(), "source": "fallback"}
 
 
 def interpolate_yield(curve, years):
@@ -89,20 +104,16 @@ def bond_price(coupon_rate, ytm, years_to_maturity):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        now = datetime.now(timezone.utc)
+        today = date.today()
         curve_data = fetch_yield_curve()
-        if not curve_data or not curve_data["curve"]:
-            fallback = {2: 3.95, 3: 3.97, 5: 4.07, 7: 4.24, 10: 4.41, 20: 4.97, 30: 4.98}
-            curve = fallback
-            curve_date = now.strftime("%m/%d/%Y")
-        else:
-            curve = curve_data["curve"]
-            curve_date = curve_data["date"]
+        curve = curve_data["curve"]
+        curve_date = curve_data["date"]
+        curve_source = curve_data.get("source", "")
 
         results = []
         for bond in TREASURY_BONDS:
-            mat = datetime.strptime(bond["maturityDate"], "%Y-%m-%d")
-            years_left = (mat - now).days / 365.25
+            mat = date.fromisoformat(bond["maturityDate"])
+            years_left = (mat - today).days / 365.25
             if years_left <= 0:
                 continue
             ytm = interpolate_yield(curve, years_left)
@@ -125,9 +136,11 @@ class handler(BaseHTTPRequestHandler):
         for i, r in enumerate(results):
             r["rank"] = i + 1
 
+        now = datetime.now(timezone.utc)
         payload = {
             "bonds": results,
             "curveDate": curve_date,
+            "curveSource": curve_source,
             "lastUpdated": now.strftime("%Y-%m-%dT%H:%M:%S"),
             "yieldCurve": {str(k): v for k, v in curve.items()},
         }
