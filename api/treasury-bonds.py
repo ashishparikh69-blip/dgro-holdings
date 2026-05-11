@@ -74,6 +74,24 @@ def fetch_yield_curve():
         return {"curve": FALLBACK_CURVE, "date": date.today().isoformat(), "source": "fallback"}
 
 
+def next_coupon(maturity_str, today):
+    """Treasury bonds pay semiannually on maturity month/day and 6 months offset."""
+    mat = date.fromisoformat(maturity_str)
+    m1, d1 = mat.month, mat.day
+    m2 = m1 + 6 if m1 <= 6 else m1 - 6
+    d2 = min(d1, 28 if m2 == 2 else 30 if m2 in (4, 6, 9, 11) else 31)
+    d1 = min(d1, 28 if m1 == 2 else 30 if m1 in (4, 6, 9, 11) else 31)
+    dates = []
+    for y in (today.year, today.year + 1):
+        for mo, dy in [(m1, d1), (m2, d2)]:
+            try:
+                dates.append(date(y, mo, dy))
+            except ValueError:
+                pass
+    future = sorted(d for d in dates if d > today)
+    return future[0].isoformat() if future else mat.isoformat()
+
+
 def interpolate_yield(curve, years):
     """Linear interpolation on the yield curve for a given maturity in years."""
     keys = sorted(curve.keys())
@@ -126,6 +144,7 @@ class handler(BaseHTTPRequestHandler):
                 "type": bond["type"],
                 "coupon": bond["coupon"],
                 "maturityDate": bond["maturityDate"],
+                "nextCouponDate": next_coupon(bond["maturityDate"], today),
                 "yearsLeft": round(years_left, 1),
                 "ytm": round(ytm, 3),
                 "price": round(price, 2),
