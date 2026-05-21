@@ -8,64 +8,54 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 FINNHUB_TOKEN = os.environ.get("FINNHUB_TOKEN", "")
 
 PAYOUT_RATIOS = {
-    "CVX":  48.3, "MRK":  48.1, "VZ":   61.8, "KO":   73.4, "TXN":  53.7,
-    "PEP":  70.2, "PG":   67.1, "QCOM": 35.2, "HD":   54.2, "BMY":  55.3,
-    "CMCSA":33.1, "EOG":  25.4, "ADP":  76.3, "OKE":  73.2, "TGT":  50.1,
-    "FAST": 69.1, "F":    47.8, "FITB": 38.2, "KMB":  73.2, "PAYX": 82.3,
-    "CINF": 43.8, "RF":   38.4, "TROW": 62.3, "FNF":  44.8,
+    "QCOM": 35.2, "UNH":  24.5, "KO":   73.4, "MRK":  48.1, "COP":  40.1,
+    "PEP":  70.2, "PG":   67.1, "AMGN": 53.2, "HD":   54.2, "ABT":  46.2,
+    "LMT":  50.2, "ACN":  43.1, "ADP":  76.3, "EOG":  25.4, "FAST": 69.1,
+    "FITB": 38.2, "ADM":  64.8, "ARES": 88.2,
 }
 
 DIV_GROWTH_1Y = {
-    "CVX":   8.3, "MRK":   5.1, "VZ":   2.1, "KO":   5.2, "TXN":   5.2,
-    "PEP":   7.3, "PG":    5.1, "QCOM": 6.3, "HD":   8.1, "BMY":   3.2,
-    "CMCSA": 7.1, "EOG":   9.8, "ADP": 11.8, "OKE":  3.8, "TGT":   1.8,
-    "FAST":  8.8, "F":    66.7, "FITB": 4.8, "KMB":  1.8, "PAYX":  9.8,
-    "CINF":  7.8, "RF":    7.8, "TROW": 1.8, "FNF":  7.8,
+    "QCOM":  6.3, "UNH":  12.1, "KO":   5.2, "MRK":   5.1, "COP":  12.2,
+    "PEP":   7.3, "PG":    5.1, "AMGN": 6.1, "HD":    8.1, "ABT":   5.1,
+    "LMT":   5.2, "ACN":  15.2, "ADP": 11.8, "EOG":   9.8, "FAST":  8.8,
+    "FITB":  4.8, "ADM":  12.2, "ARES": 20.1,
 }
 
 # 5-year dividend growth rate CAGR (%) — updated May 2026
 DIV_GROWTH_5Y = {
-    "CVX":   6.2, "MRK":   9.1, "VZ":   2.0, "KO":   4.8, "TXN":  12.2,
-    "PEP":   7.2, "PG":    5.8, "QCOM": 7.2, "HD":  13.8, "BMY":   9.8,
-    "CMCSA":12.1, "EOG":  22.8, "ADP": 13.2, "OKE":  3.8, "TGT":   9.2,
-    "FAST": 11.8, "F":     0.0, "FITB": 7.8, "KMB":  3.8, "PAYX": 12.8,
-    "CINF":  7.8, "RF":    9.8, "TROW": 4.8, "FNF":  9.8,
+    "QCOM":  7.2, "UNH":  14.8, "KO":   4.8, "MRK":   9.1, "COP":  17.2,
+    "PEP":   7.2, "PG":    5.8, "AMGN":13.2, "HD":   13.8, "ABT":  12.1,
+    "LMT":   7.2, "ACN":  14.2, "ADP": 13.2, "EOG":  22.8, "FAST": 11.8,
+    "FITB":  7.8, "ADM":   8.2, "ARES": 25.1,
 }
 
 DIVIDEND_YIELDS = {
-    "CVX":   3.40, "MRK":   3.24, "VZ":    5.53, "KO":    3.05, "TXN":   2.95,
-    "PEP":   3.52, "PG":    2.41, "QCOM":  2.25, "HD":    2.42, "BMY":   4.28,
-    "CMCSA": 4.55, "EOG":   3.05, "ADP":   3.00, "OKE":   4.52, "TGT":   4.05,
-    "FAST":  2.05, "F":     5.48, "FITB":  3.53, "KMB":   5.11, "PAYX":  4.60,
-    "CINF":  2.20, "RF":    4.09, "TROW":  5.52, "FNF":   4.50,
+    "QCOM":  2.25, "UNH":   1.82, "KO":    3.05, "MRK":   3.24, "COP":   3.22,
+    "PEP":   3.52, "PG":    2.41, "AMGN":  3.22, "HD":    2.42, "ABT":   1.62,
+    "LMT":   2.82, "ACN":   1.88, "ADP":   3.00, "EOG":   3.05, "FAST":  2.05,
+    "FITB":  3.53, "ADM":   4.18, "ARES":  2.78,
 }
 
-# 24 stocks in both DGRO and SCHD, sorted by SCHD weight desc (May 2026)
+# 18 stocks in both DGRO and SCHD top 100, sorted by SCHD weight desc (May 2026)
 INTERSECTION_HOLDINGS = [
-    {"ticker": "TXN",   "name": "Texas Instruments Inc",      "dgroWeight": 1.32, "schdWeight": 5.82},
-    {"ticker": "QCOM",  "name": "Qualcomm Inc",               "dgroWeight": 1.18, "schdWeight": 5.76},
-    {"ticker": "KO",    "name": "Coca-Cola Co",               "dgroWeight": 1.45, "schdWeight": 4.09},
-    {"ticker": "CVX",   "name": "Chevron Corp",               "dgroWeight": 1.62, "schdWeight": 3.99},
-    {"ticker": "VZ",    "name": "Verizon Communications",     "dgroWeight": 1.38, "schdWeight": 3.74},
-    {"ticker": "MRK",   "name": "Merck & Co Inc",             "dgroWeight": 1.58, "schdWeight": 3.73},
-    {"ticker": "PEP",   "name": "PepsiCo Inc",                "dgroWeight": 1.42, "schdWeight": 3.70},
-    {"ticker": "PG",    "name": "Procter & Gamble Co",        "dgroWeight": 1.98, "schdWeight": 3.63},
-    {"ticker": "HD",    "name": "The Home Depot Inc",         "dgroWeight": 2.21, "schdWeight": 3.36},
-    {"ticker": "BMY",   "name": "Bristol-Myers Squibb Co",    "dgroWeight": 1.25, "schdWeight": 2.95},
-    {"ticker": "CMCSA", "name": "Comcast Corp",               "dgroWeight": 1.35, "schdWeight": 2.30},
-    {"ticker": "ADP",   "name": "Automatic Data Processing",  "dgroWeight": 0.69, "schdWeight": 2.21},
-    {"ticker": "EOG",   "name": "EOG Resources Inc",          "dgroWeight": 0.54, "schdWeight": 1.87},
-    {"ticker": "OKE",   "name": "ONEOK Inc",                  "dgroWeight": 0.13, "schdWeight": 1.43},
-    {"ticker": "TGT",   "name": "Target Corp",                "dgroWeight": 0.67, "schdWeight": 1.42},
-    {"ticker": "FAST",  "name": "Fastenal Co",                "dgroWeight": 0.26, "schdWeight": 1.28},
-    {"ticker": "F",     "name": "Ford Motor Co",              "dgroWeight": 0.51, "schdWeight": 1.21},
-    {"ticker": "FITB",  "name": "Fifth Third Bancorp",        "dgroWeight": 0.36, "schdWeight": 1.12},
-    {"ticker": "KMB",   "name": "Kimberly-Clark Corp",        "dgroWeight": 0.22, "schdWeight": 0.83},
-    {"ticker": "PAYX",  "name": "Paychex Inc",                "dgroWeight": 0.27, "schdWeight": 0.78},
-    {"ticker": "CINF",  "name": "Cincinnati Financial Corp",  "dgroWeight": 0.11, "schdWeight": 0.66},
-    {"ticker": "RF",    "name": "Regions Financial Corp",     "dgroWeight": 0.34, "schdWeight": 0.61},
-    {"ticker": "TROW",  "name": "T. Rowe Price Group Inc",    "dgroWeight": 0.19, "schdWeight": 0.58},
-    {"ticker": "FNF",   "name": "Fidelity National Financial","dgroWeight": 0.09, "schdWeight": 0.31},
+    {"ticker": "QCOM",  "name": "Qualcomm Inc",               "dgroWeight": 1.22, "schdWeight": 5.76},
+    {"ticker": "UNH",   "name": "UnitedHealth Group Inc",     "dgroWeight": 2.49, "schdWeight": 5.42},
+    {"ticker": "KO",    "name": "Coca-Cola Co",               "dgroWeight": 1.83, "schdWeight": 4.09},
+    {"ticker": "MRK",   "name": "Merck & Co Inc",             "dgroWeight": 1.82, "schdWeight": 3.73},
+    {"ticker": "COP",   "name": "ConocoPhillips",             "dgroWeight": 0.94, "schdWeight": 3.71},
+    {"ticker": "PEP",   "name": "PepsiCo Inc",                "dgroWeight": 1.59, "schdWeight": 3.70},
+    {"ticker": "PG",    "name": "Procter & Gamble Co",        "dgroWeight": 2.01, "schdWeight": 3.63},
+    {"ticker": "AMGN",  "name": "Amgen Inc",                  "dgroWeight": 1.07, "schdWeight": 3.54},
+    {"ticker": "HD",    "name": "Home Depot Inc",             "dgroWeight": 1.75, "schdWeight": 3.36},
+    {"ticker": "ABT",   "name": "Abbott Laboratories",        "dgroWeight": 0.73, "schdWeight": 2.98},
+    {"ticker": "LMT",   "name": "Lockheed Martin Corp",       "dgroWeight": 0.47, "schdWeight": 2.71},
+    {"ticker": "ACN",   "name": "Accenture PLC",              "dgroWeight": 0.70, "schdWeight": 2.68},
+    {"ticker": "ADP",   "name": "Automatic Data Processing",  "dgroWeight": 0.57, "schdWeight": 2.21},
+    {"ticker": "EOG",   "name": "EOG Resources Inc",          "dgroWeight": 0.51, "schdWeight": 1.87},
+    {"ticker": "FAST",  "name": "Fastenal Co",                "dgroWeight": 0.23, "schdWeight": 1.28},
+    {"ticker": "FITB",  "name": "Fifth Third Bancorp",        "dgroWeight": 0.33, "schdWeight": 1.12},
+    {"ticker": "ADM",   "name": "Archer Daniels Midland Co",  "dgroWeight": 0.25, "schdWeight": 1.00},
+    {"ticker": "ARES",  "name": "Ares Management Corp",       "dgroWeight": 0.24, "schdWeight": 0.65},
 ]
 
 _stooq_cache = {"data": None, "ts": 0}
