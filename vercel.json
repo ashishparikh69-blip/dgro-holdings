@@ -9,6 +9,7 @@
   "rewrites": [
     { "source": "/schd",         "destination": "/schd.html" },
     { "source": "/intersection", "destination": "/intersection.html" },
-    { "source": "/treasury",     "destination": "/treasury.html" }
+    { "source": "/treasury",     "destination": "/treasury.html" },
+    { "source": "/preferreds",   "destination": "/preferreds.html" }
   ]
 }

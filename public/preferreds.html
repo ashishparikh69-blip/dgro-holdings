@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preferred Stocks — Yield & Qualified Dividend Status</title>
+  <script defer src="/_vercel/insights/script.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1923;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1a2634, #243447);
+      padding: 24px 32px;
+      border-bottom: 2px solid #2d4a5e;
+    }
+    header h1 { font-size: 28px; font-weight: 700; color: #ffffff; }
+    header h1 span { color: #4fc3f7; }
+    .subtitle { color: #8899aa; margin-top: 4px; font-size: 14px; }
+    .page-nav {
+      display: flex; gap: 4px; padding: 10px 32px;
+      background: #111e29; border-bottom: 1px solid #1e3040; flex-wrap: wrap;
+    }
+    .nav-link {
+      padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      color: #6688aa; text-decoration: none; transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover { background: #1a2e3e; color: #e0e0e0; }
+    .nav-link.active { background: #1a2e3e; color: #4fc3f7; }
+    .tax-callout {
+      margin: 16px 32px 0; padding: 12px 16px; background: #16242f;
+      border: 1px solid #244a5e; border-left: 3px solid #4fc3f7; border-radius: 6px;
+      font-size: 13px; color: #aabbcc; line-height: 1.6;
+    }
+    .tax-callout strong { color: #4fc3f7; }
+    .tax-callout .tag-no { color: #ef9a9a; font-weight: 600; }
+    .tax-callout .tag-yes { color: #81c784; font-weight: 600; }
+    .filter-bar {
+      display: flex; gap: 16px; padding: 16px 32px; flex-wrap: wrap; align-items: center;
+    }
+    .filter-bar label { font-size: 12px; color: #6688aa; font-weight: 600; }
+    .filter-bar select {
+      margin-left: 6px; background: #16242f; color: #e0e0e0;
+      border: 1px solid #2d4a5e; border-radius: 5px; padding: 5px 8px; font-size: 13px;
+    }
+    .filter-bar .count { margin-left: auto; font-size: 12px; color: #6688aa; }
+    .table-container { overflow-x: auto; padding: 0 8px 32px; }
+    table {
+      width: auto; min-width: 100%; border-collapse: collapse;
+      margin-top: 4px; font-size: 14px;
+    }
+    thead th {
+      background: #1a2634; padding: 10px 10px; text-align: right;
+      font-weight: 600; color: #8899aa; text-transform: uppercase;
+      font-size: 11px; letter-spacing: 0.5px; border-bottom: 2px solid #2d4a5e;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      position: sticky; top: 0; z-index: 1;
+    }
+    thead th:nth-child(1), thead th:nth-child(2), thead th:nth-child(3) { text-align: left; }
+    thead th:hover { color: #4fc3f7; }
+    thead th .sort-arrow { margin-left: 4px; font-size: 10px; }
+    tbody tr { border-bottom: 1px solid #1e3040; transition: background 0.15s; }
+    tbody tr:hover { background: #1a2e3e; }
+    td { padding: 9px 10px; text-align: right; white-space: nowrap; }
+    td.ticker { text-align: left; font-weight: 700; color: #4fc3f7; }
+    td.issuer { text-align: left; color: #aabbcc; }
+    td.sector { text-align: left; color: #8899aa; font-size: 12px; }
+    .price-cell { color: #ffffff; font-weight: 600; }
+    .yield-cell { color: #81c784; font-weight: 700; }
+    .coupon-cell { color: #ffd54f; }
+    .range-wrap { display: inline-block; width: 120px; vertical-align: middle; }
+    .range-bar {
+      position: relative; height: 6px; background: #243447; border-radius: 3px; margin: 3px 0;
+    }
+    .range-fill {
+      position: absolute; top: 0; height: 6px; width: 8px; border-radius: 3px;
+      background: #4fc3f7; transform: translateX(-50%);
+    }
+    .range-labels { display: flex; justify-content: space-between; font-size: 9px; color: #5a6e80; }
+    .rate-Fixed { color: #90caf9; }
+    .rate-Floating { color: #ce93d8; }
+    .rate-FixFloat { color: #ffb74d; }
+    .qual-Y { color: #81c784; font-weight: 700; }
+    .qual-N { color: #ef9a9a; font-weight: 700; }
+    .qual-P { color: #ffd54f; font-weight: 700; }
+    .notes { font-size: 11px; color: #7a8a9a; text-align: left; white-space: normal; max-width: 200px; }
+    footer {
+      text-align: center; padding: 18px 16px 28px; font-size: 11px;
+      color: #556677; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Preferred <span>Stocks</span> — Yield & Qualified Status</h1>
+    <div class="subtitle">Sorted by yield. Current price, 52-week range, coupon, rate type, and qualified-dividend tax status.</div>
+  </header>
+  <nav class="page-nav">
+    <a href="/" class="nav-link">DGRO</a>
+    <a href="/schd" class="nav-link">SCHD</a>
+    <a href="/intersection" class="nav-link">DGRO ∩ SCHD</a>
+    <a href="/treasury" class="nav-link">Treasuries<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
+    <a href="/preferreds" class="nav-link active">Preferreds</a>
+  </nav>
+
+  <div class="tax-callout">
+    <strong>Tax tip:</strong> Bank preferred dividends are typically <span class="tag-no">non-qualified</span> (taxed as ordinary income) — best held in an IRA/401(k).
+    Insurance &amp; utility preferreds are usually <span class="tag-yes">qualified</span> (lower capital-gains rate). REIT &amp; foreign issuers are often partial.
+    Qualified column: <span class="tag-yes">Y</span> = qualified · <span style="color:#ffd54f;font-weight:600;">P</span> = partial · <span class="tag-no">N</span> = non-qualified.
+  </div>
+
+  <div class="filter-bar">
+    <label>Sector <select id="fSector"></select></label>
+    <label>Qualified <select id="fQual">
+      <option value="">All</option>
+      <option value="Y">Qualified (Y)</option>
+      <option value="P">Partial (P)</option>
+      <option value="N">Non-qualified (N)</option>
+    </select></label>
+    <label>Rate <select id="fRate"></select></label>
+    <span class="count" id="rowCount"></span>
+  </div>
+
+  <div class="table-container">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th data-col="ticker">Ticker <span class="sort-arrow"></span></th>
+          <th data-col="issuer">Issuer <span class="sort-arrow"></span></th>
+          <th data-col="sector">Sector <span class="sort-arrow"></span></th>
+          <th data-col="price">Price <span class="sort-arrow"></span></th>
+          <th data-col="range">52-wk Range <span class="sort-arrow"></span></th>
+          <th data-col="yield">Yield <span class="sort-arrow">▼</span></th>
+          <th data-col="coupon">Coupon <span class="sort-arrow"></span></th>
+          <th data-col="rate">Rate <span class="sort-arrow"></span></th>
+          <th data-col="qual">Qual? <span class="sort-arrow"></span></th>
+          <th data-col="notes">Notes <span class="sort-arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    Prices approximate, as of early June 2026 — verify before trading. &nbsp;·&nbsp;
+    Par $25 unless noted. &nbsp;·&nbsp;
+    Qualified status is general guidance; confirm with a tax advisor. &nbsp;·&nbsp;
+    Not investment advice.
+  </footer>
+
+  <script>
+    // [ticker, issuer, sector, price, lo52, hi52, yield, coupon, rateType, qual(Y/P/N), callable, notes]
+    const PREFERREDS = [
+      ["KEY-PJ",  "KeyCorp",          "Bank",      21.35, 19.97, 23.34, 6.61, 5.65, "Fixed",     "N", true,  ""],
+      ["USB-PR",  "U.S. Bancorp",     "Bank",      16.05, 15.45, 17.73, 6.24, 3.50, "Fix→Float", "N", true,  "6.875% Series Q fix-to-float"],
+      ["USB-PS",  "U.S. Bancorp",     "Bank",      18.80, 17.34, 20.62, 5.85, 4.00, "Fixed",     "N", true,  "Series O 4.50%"],
+      ["MET-PRF", "MetLife",          "Insurance", 18.51, 18.02, 21.44, 6.40, 4.75, "Fixed",     "Y", true,  "4.75% Series F — qualified"],
+      ["COF-PRN", "Capital One",      "Bank",      16.21, 15.15, 18.57, 6.68, 4.25, "Fixed",     "N", true,  "⚠ Call date 9/1/2026"],
+      ["USB-PH",  "U.S. Bancorp",     "Bank",      18.96, 17.71, 24.00, 6.42, 5.30, "Floating",  "N", true,  ""],
+      ["USB-PQ",  "U.S. Bancorp",     "Bank",      16.46, 14.59, 16.74, 6.20, 3.75, "Fixed",     "N", true,  ""],
+      ["USB-PP",  "U.S. Bancorp",     "Bank",      22.55, 20.50, 24.80, 6.03, 5.50, "Fixed",     "N", true,  ""],
+      ["JPM-PC",  "JPMorgan Chase",   "Bank",      25.38, 24.74, 25.74, 5.91, 6.00, "Fixed",     "N", true,  ""],
+      ["JPM-PD",  "JPMorgan Chase",   "Bank",      25.06, 23.82, 25.56, 5.73, 5.75, "Fixed",     "N", true,  ""],
+      ["JPM-PM",  "JPMorgan Chase",   "Bank",      20.85, 19.50, 24.20, 6.90, 4.20, "Fix→Float", "N", true,  ""],
+      ["BAC-PL",  "Bank of America",  "Bank",      1209,  1150,  1350,  5.92, 7.25, "Fixed",     "N", false, "$1,000 par — no call"],
+      ["BAC-PK",  "Bank of America",  "Bank",      24.85, 23.36, 25.38, 5.91, 6.00, "Fixed",     "N", true,  ""],
+      ["WFC-PL",  "Wells Fargo",      "Bank",      1187,  1133,  1271,  6.31, 7.50, "Fixed",     "N", false, "$1,000 par — no call"],
+      ["WFC-PZ",  "Wells Fargo",      "Bank",      22.50, 20.50, 25.20, 6.30, 4.75, "Fix→Float", "N", true,  ""],
+      ["C-PJ",    "Citigroup",        "Bank",      24.65, 22.50, 26.00, 7.00, 7.13, "Fixed",     "N", true,  ""],
+      ["C-PK",    "Citigroup",        "Bank",      22.80, 20.80, 25.50, 6.50, 6.30, "Fix→Float", "N", true,  ""],
+      ["GS-PJ",   "Goldman Sachs",    "Bank",      25.05, 24.27, 25.74, 6.37, 6.40, "Fix→Float", "N", true,  ""],
+      ["GS-PA",   "Goldman Sachs",    "Bank",      24.30, 23.10, 25.50, 6.30, 5.50, "Fixed",     "N", true,  ""],
+      ["MS-PE",   "Morgan Stanley",   "Bank",      24.80, 23.50, 26.00, 6.50, 6.88, "Fixed",     "N", true,  ""],
+      ["ALL-PH",  "Allstate",         "Insurance", 24.30, 21.50, 25.80, 7.20, 5.10, "Fix→Float", "Y", true,  ""],
+      ["MET-PA",  "MetLife",          "Insurance", 23.80, 21.00, 25.50, 6.30, 4.00, "Fix→Float", "Y", true,  ""],
+      ["PRU-PB",  "Prudential",       "Insurance", 24.20, 22.50, 25.80, 5.90, 5.63, "Fixed",     "Y", true,  ""],
+      ["ENB-PF",  "Enbridge",         "Energy",    23.50, 21.00, 26.00, 7.40, 6.38, "Fix→Float", "P", true,  "Canadian co — partial qual"],
+      ["EPD-PA",  "Enterprise Prods", "Energy",    25.80, 24.00, 27.50, 7.80, 8.00, "Fixed",     "N", false, "MLP — non-qualified"],
+      ["NEE-PP",  "NextEra Energy",   "Utility",   24.50, 22.80, 26.00, 5.65, 5.65, "Fixed",     "Y", true,  ""],
+      ["DUK-PA",  "Duke Energy",      "Utility",   24.80, 23.20, 26.00, 5.75, 5.75, "Fixed",     "Y", true,  ""],
+      ["SO-PC",   "Southern Co.",     "Utility",   24.20, 22.50, 25.50, 5.25, 5.25, "Fixed",     "Y", true,  ""],
+      ["PSA-PR",  "Public Storage",   "REIT",      25.05, 23.00, 26.50, 5.20, 5.20, "Fixed",     "P", true,  ""],
+      ["PSA-PP",  "Public Storage",   "REIT",      24.65, 22.50, 26.20, 4.95, 4.88, "Fixed",     "P", true,  ""],
+      ["O-PA",    "Realty Income",    "REIT",      25.20, 23.50, 26.80, 6.00, 6.00, "Fixed",     "P", true,  ""],
+      ["DLR-PL",  "Digital Realty",   "REIT",      23.00, 20.50, 25.50, 5.60, 5.20, "Fixed",     "P", true,  ""],
+    ];
+
+    const COL = { ticker:0, issuer:1, sector:2, price:3, lo52:4, hi52:5, yield:6, coupon:7, rate:8, qual:9, callable:10, notes:11 };
+    let sortCol = 'yield';
+    let sortAsc = false;
+
+    function rateClass(r) {
+      if (r === 'Fixed') return 'rate-Fixed';
+      if (r === 'Floating') return 'rate-Floating';
+      return 'rate-FixFloat';
+    }
+    function qualLabel(q) { return q === 'Y' ? 'Yes' : q === 'P' ? 'Partial' : 'No'; }
+
+    function populateFilters() {
+      const sectors = [...new Set(PREFERREDS.map(r => r[COL.sector]))].sort();
+      const rates   = [...new Set(PREFERREDS.map(r => r[COL.rate]))];
+      const fs = document.getElementById('fSector');
+      fs.innerHTML = '<option value="">All</option>' + sectors.map(s => `<option>${s}</option>`).join('');
+      const fr = document.getElementById('fRate');
+      fr.innerHTML = '<option value="">All</option>' + rates.map(s => `<option>${s}</option>`).join('');
+    }
+
+    function render() {
+      const sSel = document.getElementById('fSector').value;
+      const qSel = document.getElementById('fQual').value;
+      const rSel = document.getElementById('fRate').value;
+
+      let rows = PREFERREDS.filter(r =>
+        (!sSel || r[COL.sector] === sSel) &&
+        (!qSel || r[COL.qual] === qSel) &&
+        (!rSel || r[COL.rate] === rSel)
+      );
+
+      const idx = COL[sortCol] !== undefined ? COL[sortCol] : COL.yield;
+      const key = sortCol === 'range' ? COL.price : idx;
+      rows.sort((a, b) => {
+        let va = a[key], vb = b[key];
+        if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        return sortAsc ? va - vb : vb - va;
+      });
+
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = rows.map(r => {
+        const lo = r[COL.lo52], hi = r[COL.hi52], px = r[COL.price];
+        const pct = Math.max(0, Math.min(100, ((px - lo) / (hi - lo)) * 100));
+        const isK = px > 100; // $1000-par bonds
+        const fmt = v => isK ? '$' + v.toLocaleString('en-US') : '$' + v.toFixed(2);
+        return `<tr>
+          <td class="ticker">${r[COL.ticker]}</td>
+          <td class="issuer">${r[COL.issuer]}</td>
+          <td class="sector">${r[COL.sector]}</td>
+          <td class="price-cell">${fmt(px)}</td>
+          <td>
+            <div class="range-wrap">
+              <div class="range-bar"><div class="range-fill" style="left:${pct}%"></div></div>
+              <div class="range-labels"><span>${fmt(lo)}</span><span>${fmt(hi)}</span></div>
+            </div>
+          </td>
+          <td class="yield-cell">${r[COL.yield].toFixed(2)}%</td>
+          <td class="coupon-cell">${r[COL.coupon].toFixed(2)}%</td>
+          <td class="${rateClass(r[COL.rate])}">${r[COL.rate]}</td>
+          <td class="qual-${r[COL.qual]}">${qualLabel(r[COL.qual])}</td>
+          <td class="notes">${r[COL.notes] || ''}</td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('rowCount').textContent = rows.length + ' of ' + PREFERREDS.length + ' series';
+      document.querySelectorAll('thead th').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (!arrow) return;
+        arrow.textContent = th.dataset.col === sortCol ? (sortAsc ? '▲' : '▼') : '';
+      });
+    }
+
+    document.querySelectorAll('thead th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        const textCols = ['ticker', 'issuer', 'sector', 'rate', 'qual', 'notes'];
+        if (sortCol === col) sortAsc = !sortAsc;
+        else { sortCol = col; sortAsc = textCols.includes(col); }
+        render();
+      });
+    });
+    ['fSector', 'fQual', 'fRate'].forEach(id =>
+      document.getElementById(id).addEventListener('change', render));
+
+    populateFilters();
+    render();
+  </script>
+</body>
+</html>
