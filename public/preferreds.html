@@ -82,9 +82,6 @@
       background: #4fc3f7; transform: translateX(-50%);
     }
     .range-labels { display: flex; justify-content: space-between; font-size: 9px; color: #5a6e80; }
-    .rate-Fixed { color: #90caf9; }
-    .rate-Floating { color: #ce93d8; }
-    .rate-FixFloat { color: #ffb74d; }
     .qual-Y { color: #81c784; font-weight: 700; }
     .qual-N { color: #ef9a9a; font-weight: 700; }
     .qual-P { color: #ffd54f; font-weight: 700; }
@@ -102,7 +99,7 @@
     </a>
     <div>
     <h1>Preferred <span>Stocks</span> — Yield & Qualified Status</h1>
-    <div class="subtitle">Sorted by yield. Current price, 52-week range, coupon, rate type, and qualified-dividend tax status.</div>
+    <div class="subtitle">Fixed-rate preferreds, sorted by yield. Current price, 52-week range, coupon, and qualified-dividend tax status.</div>
     </div>
   </header>
   <nav class="page-nav">
@@ -127,7 +124,6 @@
       <option value="P">Partial (P)</option>
       <option value="N">Non-qualified (N)</option>
     </select></label>
-    <label>Rate <select id="fRate"></select></label>
     <span class="count" id="rowCount"></span>
   </div>
 
@@ -142,7 +138,6 @@
           <th data-col="range">52-wk Range <span class="sort-arrow"></span></th>
           <th data-col="yield">Yield <span class="sort-arrow">▼</span></th>
           <th data-col="coupon">Coupon <span class="sort-arrow"></span></th>
-          <th data-col="rate">Rate <span class="sort-arrow"></span></th>
           <th data-col="qual">Qual? <span class="sort-arrow"></span></th>
           <th data-col="notes">Notes <span class="sort-arrow"></span></th>
         </tr>
@@ -228,31 +223,21 @@
     let sortCol = 'yield';
     let sortAsc = false;
 
-    function rateClass(r) {
-      if (r === 'Fixed') return 'rate-Fixed';
-      if (r === 'Floating') return 'rate-Floating';
-      return 'rate-FixFloat';
-    }
     function qualLabel(q) { return q === 'Y' ? 'Yes' : q === 'P' ? 'Partial' : 'No'; }
 
     function populateFilters() {
       const sectors = [...new Set(PREFERREDS.map(r => r[COL.sector]))].sort();
-      const rates   = [...new Set(PREFERREDS.map(r => r[COL.rate]))];
       const fs = document.getElementById('fSector');
       fs.innerHTML = '<option value="">All</option>' + sectors.map(s => `<option>${s}</option>`).join('');
-      const fr = document.getElementById('fRate');
-      fr.innerHTML = '<option value="">All</option>' + rates.map(s => `<option>${s}</option>`).join('');
     }
 
     function render() {
       const sSel = document.getElementById('fSector').value;
       const qSel = document.getElementById('fQual').value;
-      const rSel = document.getElementById('fRate').value;
 
       let rows = PREFERREDS.filter(r =>
         (!sSel || r[COL.sector] === sSel) &&
-        (!qSel || r[COL.qual] === qSel) &&
-        (!rSel || r[COL.rate] === rSel)
+        (!qSel || r[COL.qual] === qSel)
       );
 
       const idx = COL[sortCol] !== undefined ? COL[sortCol] : COL.yield;
@@ -282,7 +267,6 @@
           </td>
           <td class="yield-cell">${r[COL.yield].toFixed(2)}%</td>
           <td class="coupon-cell">${r[COL.coupon].toFixed(2)}%</td>
-          <td class="${rateClass(r[COL.rate])}">${r[COL.rate]}</td>
           <td class="qual-${r[COL.qual]}">${qualLabel(r[COL.qual])}</td>
           <td class="notes">${r[COL.notes] || ''}</td>
         </tr>`;
@@ -299,13 +283,13 @@
     document.querySelectorAll('thead th[data-col]').forEach(th => {
       th.addEventListener('click', () => {
         const col = th.dataset.col;
-        const textCols = ['ticker', 'issuer', 'sector', 'rate', 'qual', 'notes'];
+        const textCols = ['ticker', 'issuer', 'sector', 'qual', 'notes'];
         if (sortCol === col) sortAsc = !sortAsc;
         else { sortCol = col; sortAsc = textCols.includes(col); }
         render();
       });
     });
-    ['fSector', 'fQual', 'fRate'].forEach(id =>
+    ['fSector', 'fQual'].forEach(id =>
       document.getElementById(id).addEventListener('change', render));
 
     populateFilters();
