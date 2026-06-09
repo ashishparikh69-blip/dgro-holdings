@@ -81,28 +81,29 @@ DIV_GROWTH_5Y = {
     "OGN":   0.0, "UGI":   0.0, "FAF":   5.8,
 }
 
-# Trailing 12-month dividend yields (%) — updated Mar 2026 via Yahoo Finance trailingAnnualDividendYield
-DIVIDEND_YIELDS = {
-    "AAPL":  0.52, "MSFT":  0.83, "JPM":   2.28, "ABBV":  3.55, "AVGO":  1.23,
-    "HD":    2.42, "JNJ":   2.16, "PG":    2.41, "XOM":   2.53, "CVX":   3.40,
-    "MRK":   3.24, "PFE":   6.28, "CSCO":  2.09, "KO":    3.05, "PEP":   3.52,
-    "VZ":    5.53, "CMCSA": 4.55, "TXN":   2.95, "PM":    3.45, "BMY":   4.28,
-    "UNP":   2.45, "QCOM":  2.25, "RTX":   1.33, "LOW":   2.18, "MDT":   3.62,
-    "MS":    2.48, "BLK":   2.55, "SCHW":  1.15, "C":     2.11, "CB":    1.44,
-    "GS":    1.73, "ADI":   1.31, "DE":    1.14, "SO":    3.45, "DUK":   3.25,
-    "ITW":   2.55, "CI":    1.78, "USB":   3.98, "PNC":   3.27, "ADP":   3.00,
-    "TGT":   4.05, "MMM":   2.25, "EMR":   2.05, "FIS":   3.25, "APD":   2.55,
-    "NSC":   1.94, "CME":   2.05, "ICE":   1.32, "EOG":   3.05, "CL":    2.25,
-    "WMB":   2.70, "F":     5.48, "GM":    1.02, "MET":   3.25, "PRU":   5.84,
-    "AIG":   2.05, "TRV":   1.82, "ALL":   2.05, "D":     4.85, "SRE":   2.71,
-    "AEP":   2.91, "WEC":   3.52, "XEL":   2.87, "ETR":   2.35, "PPL":   3.25,
-    "ED":    3.45, "FITB":  3.53, "KEY":   4.25, "RF":    4.09, "CFG":   3.01,
-    "HBAN":  4.09, "NTRS":  2.28, "STT":   2.65, "IP":    5.44, "NUE":   1.36,
-    "PAYX":  4.60, "FAST":  2.05, "GPC":   4.16, "OMC":   3.82, "HPQ":   6.32,
-    "KMB":   5.11, "SYY":   2.82, "CAH":   0.97, "TROW":  5.52, "BEN":   5.52,
-    "LEN":   2.13, "DHI":   1.05, "PHM":   0.82, "OKE":   4.52, "KMI":   3.50,
-    "CINF":  2.20, "AMCR":  6.66, "FNF":   4.50, "CMA":   3.06, "ZION":  3.52,
-    "OGN":   5.52, "UGI":   4.07, "FAF":   4.05,
+# Trailing 12-month dividends per share ($) — updated Jun 2026 via Yahoo Finance chart events.
+# Yield is computed live as annual_div / current_price so it stays accurate as prices move.
+ANNUAL_DIVIDENDS = {
+    "AAPL":  1.05,  "MSFT":  3.56,  "JPM":   5.90,  "ABBV":  6.74,  "AVGO":  2.48,
+    "HD":    9.26,  "JNJ":   5.24,  "PG":    4.26,  "XOM":   4.08,  "CVX":   6.98,
+    "MRK":   3.32,  "PFE":   1.72,  "CSCO":  1.65,  "KO":    2.06,  "PEP":   5.75,
+    "VZ":    2.77,  "CMCSA": 1.28,  "TXN":   5.62,  "PM":    5.76,  "BMY":   2.50,
+    "UNP":   5.52,  "QCOM":  3.59,  "RTX":   2.77,  "LOW":   4.80,  "MDT":   2.84,
+    "MS":    4.00,  "BLK":  21.88,  "SCHW":  1.18,  "C":     2.40,  "CB":    1.94,
+    "GS":   17.00,  "ADI":   4.18,  "DE":    6.48,  "SO":    2.98,  "DUK":   4.26,
+    "ITW":   6.33,  "CI":    6.14,  "USB":   2.06,  "PNC":   6.80,  "ADP":   6.48,
+    "TGT":   4.56,  "MMM":   3.02,  "EMR":   2.19,  "FIS":   1.64,  "APD":   7.18,
+    "NSC":   5.40,  "CME":  11.20,  "ICE":   1.96,  "EOG":   4.04,  "CL":    2.09,
+    "WMB":   2.03,  "F":     0.60,  "GM":    0.66,  "MET":   2.30,  "PRU":   5.50,
+    "AIG":   1.80,  "TRV":   4.40,  "ALL":   5.16,  "D":     2.67,  "SRE":   2.59,
+    "AEP":   3.78,  "WEC":   3.69,  "XEL":   2.30,  "ETR":   2.52,  "PPL":   1.10,
+    "ED":    3.48,  "FITB":  1.57,  "KEY":   0.82,  "RF":    1.06,  "CFG":   1.80,
+    "HBAN":  0.62,  "NTRS":  3.20,  "STT":   3.28,  "IP":    1.85,  "NUE":   2.22,
+    "PAYX":  4.43,  "FAST":  0.92,  "GPC":   4.19,  "OMC":   3.00,  "HPQ":   1.18,
+    "KMB":   5.08,  "SYY":   2.16,  "CAH":   2.04,  "TROW":  5.11,  "BEN":   1.30,
+    "LEN":   2.00,  "DHI":   1.75,  "PHM":   0.96,  "OKE":   4.20,  "KMI":   1.18,
+    "CINF":  3.55,  "AMCR":  1.30,  "FNF":   2.00,  "CMA":   2.84,  "ZION":  1.80,
+    "OGN":   0.08,  "UGI":   1.50,  "FAF":   2.74,
 }
 
 # DGRO Top 100 Holdings (source: iShares, approximate weights) — sorted by weight desc
@@ -395,7 +396,7 @@ def get_holdings_data():
             "weight":           holding["weight"],
             "price":            price,
             "priceIsLive":      live_px is not None,
-            "yield":            DIVIDEND_YIELDS.get(ticker),
+            "yield":            round(ANNUAL_DIVIDENDS.get(ticker, 0) / price * 100, 2) if price else None,
             "payoutRatio":      PAYOUT_RATIOS.get(ticker),
             "divGrowth1Y":      DIV_GROWTH_1Y.get(ticker),
             "divGrowth5Y":      DIV_GROWTH_5Y.get(ticker),
