@@ -25,46 +25,43 @@ TREASURY_BONDS = [
     {"cusip": "91282CNF4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2032-05-31"},
 ]
 
-FALLBACK_CURVE = {2: 3.95, 3: 3.97, 5: 4.07, 7: 4.24, 10: 4.41, 20: 4.97, 30: 4.98}
+FALLBACK_CURVE = {2: 4.16, 3: 4.20, 5: 4.28, 7: 4.41, 10: 4.57, 20: 5.09, 30: 5.09}
 
 
 def fetch_yield_curve():
-    """Fetch latest Treasury yield curve from treasury.gov XML API."""
+    """Fetch latest Treasury yield curve from treasury.gov CSV API."""
     try:
         today = date.today()
         url = (
             "https://home.treasury.gov/resource-center/data-chart-center/"
-            "interest-rates/TextView?type=daily_treasury_yield_curve"
-            f"&field_tdr_date_value={today.year}"
+            "interest-rates/daily-treasury-rates.csv/"
+            f"{today.year}/all?field_tdr_date_value={today.year}"
+            "&type=daily_treasury_yield_curve&page&_format=csv"
         )
         req = urllib.request.Request(url, headers={
             "User-Agent": "Mozilla/5.0 (compatible; bond-tracker/1.0)",
-            "Accept": "text/html",
+            "Accept": "text/csv",
         })
         with urllib.request.urlopen(req, timeout=20) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
-        rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL)
-        if not rows:
+            csv_text = resp.read().decode("utf-8", errors="replace")
+        lines = csv_text.strip().split("\n")
+        if len(lines) < 2:
             return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
-        last_data_row = None
-        for row in rows:
-            cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL)
-            cells = [c.strip() for c in cells]
-            if cells and re.match(r'\d{2}/\d{2}/\d{4}', cells[0]):
-                last_data_row = cells
-        if not last_data_row or len(last_data_row) < 13:
+        header = [h.strip().strip('"') for h in lines[0].split(",")]
+        first_row = [c.strip().strip('"') for c in lines[1].split(",")]
+        if not first_row or not re.match(r'\d{2}/\d{2}/\d{4}', first_row[0]):
             return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
-        curve_date = last_data_row[0]
-        col_map = [
-            (1, 1/12), (2, 2/12), (3, 3/12), (4, 4/12),
-            (5, 6/12), (6, 1), (7, 2), (8, 3), (9, 5),
-            (10, 7), (11, 10), (12, 20), (13, 30),
-        ]
+        curve_date = first_row[0]
+        col_years = {
+            "1 Mo": 1/12, "2 Mo": 2/12, "3 Mo": 3/12, "4 Mo": 4/12,
+            "6 Mo": 6/12, "1 Yr": 1, "2 Yr": 2, "3 Yr": 3, "5 Yr": 5,
+            "7 Yr": 7, "10 Yr": 10, "20 Yr": 20, "30 Yr": 30,
+        }
         curve = {}
-        for idx, years in col_map:
-            if idx < len(last_data_row) and last_data_row[idx]:
+        for i, col_name in enumerate(header):
+            if col_name in col_years and i < len(first_row) and first_row[i]:
                 try:
-                    curve[years] = float(last_data_row[idx])
+                    curve[col_years[col_name]] = float(first_row[i])
                 except ValueError:
                     pass
         if len(curve) < 3:
