@@ -27,72 +27,47 @@ TREASURY_BONDS = [
 
 FALLBACK_CURVE = {2: 4.17, 3: 4.22, 5: 4.29, 7: 4.41, 10: 4.55, 20: 5.03, 30: 5.01}
 
-# Maps the treasury.gov `headers` attribute value to years-to-maturity
-_HEADER_TO_YEARS = {
-    "view-field-bc-1month-table-column":  1/12,
-    "view-field-bc-2month-table-column":  2/12,
-    "view-field-bc-3month-table-column":  3/12,
-    "view-field-bc-4month-table-column":  4/12,
-    "view-field-bc-6month-table-column":  6/12,
-    "view-field-bc-1year-table-column":   1,
-    "view-field-bc-2year-table-column":   2,
-    "view-field-bc-3year-table-column":   3,
-    "view-field-bc-5year-table-column":   5,
-    "view-field-bc-7year-table-column":   7,
-    "view-field-bc-10year-table-column":  10,
-    "view-field-bc-20year-table-column":  20,
-    "view-field-bc-30year-table-column":  30,
-}
-
-
-def _parse_treasury_html(html):
-    """Extract the most recent yield curve row using headers attributes (position-independent)."""
-    curve = {}
-    curve_date = None
-    for row in re.finditer(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL):
-        row_html = row.group(1)
-        time_match = re.search(r'<time[^>]*>(\d{2}/\d{2}/\d{4})</time>', row_html)
-        if not time_match:
-            continue
-        row_date = time_match.group(1)
-        row_curve = {}
-        for td in re.finditer(r'<td[^>]+headers="([^"]+)"[^>]*>(.*?)</td>', row_html, re.DOTALL):
-            header = td.group(1).strip()
-            years = _HEADER_TO_YEARS.get(header)
-            if years is None:
-                continue
-            val_str = re.sub(r'<[^>]+>', '', td.group(2)).strip()
-            try:
-                row_curve[years] = float(val_str)
-            except ValueError:
-                pass
-        if len(row_curve) >= 3:
-            curve = row_curve
-            curve_date = row_date
-    return curve, curve_date
-
-
 def fetch_yield_curve():
-    """Fetch latest Treasury yield curve from treasury.gov."""
-    today = date.today()
+    """Fetch latest Treasury yield curve from treasury.gov CSV API."""
     try:
+        today = date.today()
         url = (
             "https://home.treasury.gov/resource-center/data-chart-center/"
-            "interest-rates/TextView?type=daily_treasury_yield_curve"
-            f"&field_tdr_date_value={today.year}"
+            "interest-rates/daily-treasury-rates.csv/"
+            f"{today.year}/all?field_tdr_date_value={today.year}"
+            "&type=daily_treasury_yield_curve&page&_format=csv"
         )
         req = urllib.request.Request(url, headers={
             "User-Agent": "Mozilla/5.0 (compatible; bond-tracker/1.0)",
-            "Accept": "text/html",
+            "Accept": "text/csv",
         })
         with urllib.request.urlopen(req, timeout=20) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
-        curve, curve_date = _parse_treasury_html(html)
-        if len(curve) >= 3:
-            return {"curve": curve, "date": curve_date, "source": "treasury.gov"}
+            csv_text = resp.read().decode("utf-8", errors="replace")
+        lines = csv_text.strip().split("\n")
+        if len(lines) < 2:
+            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
+        header = [h.strip().strip('"') for h in lines[0].split(",")]
+        first_row = [c.strip().strip('"') for c in lines[1].split(",")]
+        if not first_row or not re.match(r'\d{2}/\d{2}/\d{4}', first_row[0]):
+            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
+        curve_date = first_row[0]
+        col_years = {
+            "1 Mo": 1/12, "2 Mo": 2/12, "3 Mo": 3/12, "4 Mo": 4/12,
+            "6 Mo": 6/12, "1 Yr": 1, "2 Yr": 2, "3 Yr": 3, "5 Yr": 5,
+            "7 Yr": 7, "10 Yr": 10, "20 Yr": 20, "30 Yr": 30,
+        }
+        curve = {}
+        for i, col_name in enumerate(header):
+            if col_name in col_years and i < len(first_row) and first_row[i]:
+                try:
+                    curve[col_years[col_name]] = float(first_row[i])
+                except ValueError:
+                    pass
+        if len(curve) < 3:
+            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
+        return {"curve": curve, "date": curve_date, "source": "treasury.gov"}
     except Exception:
-        pass
-    return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
+        return {"curve": FALLBACK_CURVE, "date": date.today().isoformat(), "source": "fallback"}
 
 
 def next_coupon(maturity_str, today):
