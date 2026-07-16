@@ -111,6 +111,7 @@
     <a href="/schd" class="nav-link">SCHD</a>
     <a href="/intersection" class="nav-link">DGRO ∩ SCHD</a>
     <a href="/treasury" class="nav-link active">Treasuries<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
+    <a href="/preferreds" class="nav-link">Preferreds<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
   </nav>
   <div class="meta-bar">
     <div class="status">
@@ -172,8 +173,15 @@
         bondsData = json.bonds;
         document.getElementById('loading').style.display = 'none';
         document.getElementById('bondsTable').style.display = '';
+        const isFallback = json.curveSource === 'fallback';
         document.getElementById('statusDot').className = 'dot';
-        document.getElementById('statusText').textContent = 'Live — Curve date: ' + json.curveDate;
+        if (isFallback) {
+          document.getElementById('statusDot').style.background = '#ff9800';
+          document.getElementById('statusText').textContent = 'Stale data — treasury.gov unavailable, showing cached fallback rates';
+          document.getElementById('statusText').style.color = '#ff9800';
+        } else {
+          document.getElementById('statusText').textContent = 'Live — Curve date: ' + json.curveDate;
+        }
         const pstTime = new Date(json.lastUpdated + 'Z').toLocaleTimeString('en-US', {
           timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
