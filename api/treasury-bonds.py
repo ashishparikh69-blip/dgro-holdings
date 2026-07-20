@@ -3,19 +3,22 @@ import json, urllib.request, urllib.error, re
 from datetime import datetime, timezone, date
 
 TREASURY_BONDS = [
+    {"cusip": "912810UV8", "type": "20Y Bond", "coupon": 5.000, "maturityDate": "2046-05-15"},
     {"cusip": "912810UT3", "type": "20Y Bond", "coupon": 4.625, "maturityDate": "2046-02-15"},
     {"cusip": "912810UQ9", "type": "20Y Bond", "coupon": 4.625, "maturityDate": "2045-11-15"},
     {"cusip": "912810UN6", "type": "20Y Bond", "coupon": 4.875, "maturityDate": "2045-08-15"},
     {"cusip": "912810UL0", "type": "20Y Bond", "coupon": 5.000, "maturityDate": "2045-05-15"},
+    {"cusip": "91282CQQ7", "type": "10Y Note", "coupon": 4.375, "maturityDate": "2036-05-15"},
     {"cusip": "91282CPZ8", "type": "10Y Note", "coupon": 4.125, "maturityDate": "2036-02-15"},
     {"cusip": "91282CPJ4", "type": "10Y Note", "coupon": 4.000, "maturityDate": "2035-11-15"},
     {"cusip": "91282CNT4", "type": "10Y Note", "coupon": 4.250, "maturityDate": "2035-08-15"},
     {"cusip": "91282CNC1", "type": "10Y Note", "coupon": 4.250, "maturityDate": "2035-05-15"},
+    {"cusip": "91282CQT1", "type": "7Y Note",  "coupon": 4.250, "maturityDate": "2033-05-31"},
     {"cusip": "91282CQN4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2033-04-30"},
     {"cusip": "91282CQF1", "type": "7Y Note",  "coupon": 4.250, "maturityDate": "2033-03-31"},
+    {"cusip": "91282CQC8", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2033-02-28"},
     {"cusip": "91282CPY1", "type": "7Y Note",  "coupon": 4.000, "maturityDate": "2033-01-31"},
     {"cusip": "91282CPQ8", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-12-31"},
-    {"cusip": "91282CQC8", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2033-02-28"},
     {"cusip": "91282CPM7", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2032-11-30"},
     {"cusip": "91282CPF2", "type": "7Y Note",  "coupon": 3.750, "maturityDate": "2032-10-31"},
     {"cusip": "91282CNZ0", "type": "7Y Note",  "coupon": 3.875, "maturityDate": "2032-09-30"},
@@ -25,49 +28,117 @@ TREASURY_BONDS = [
     {"cusip": "91282CNF4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2032-05-31"},
 ]
 
-FALLBACK_CURVE = {2: 4.17, 3: 4.22, 5: 4.29, 7: 4.41, 10: 4.55, 20: 5.03, 30: 5.01}
+# Updated 2026-07-17 from treasury.gov H.15 / CNBC
+FALLBACK_CURVE = {2: 4.18, 3: 4.21, 5: 4.28, 7: 4.41, 10: 4.55, 20: 5.09, 30: 5.06}
+
+_XML_TAG_TO_YEARS = {
+    "BC_1MONTH": 1/12, "BC_2MONTH": 2/12, "BC_3MONTH": 3/12, "BC_4MONTH": 4/12,
+    "BC_6MONTH": 6/12, "BC_1YEAR": 1, "BC_2YEAR": 2, "BC_3YEAR": 3, "BC_5YEAR": 5,
+    "BC_7YEAR": 7, "BC_10YEAR": 10, "BC_20YEAR": 20, "BC_30YEAR": 30,
+}
+
+
+def _fetch_xml(year_month):
+    """Try the Treasury XML feed for a given YYYYMM string."""
+    url = (
+        "https://home.treasury.gov/resource-center/data-chart-center/"
+        f"interest-rates/pages/xmlview?data=daily_treasury_yield_curve"
+        f"&field_tdr_date_value_month={year_month}"
+    )
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; bond-tracker/1.0)",
+        "Accept": "application/xml,text/xml",
+    })
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        xml = resp.read().decode("utf-8", errors="replace")
+    # Each trading day is wrapped in <G_NEW_DATE>...</G_NEW_DATE>; take the last one
+    blocks = re.findall(r'<G_NEW_DATE>(.*?)</G_NEW_DATE>', xml, re.DOTALL)
+    if not blocks:
+        return None, None
+    block = blocks[-1]
+    date_m = re.search(r'<NEW_DATE>(\d{4}-\d{2}-\d{2})', block)
+    curve_date = date_m.group(1) if date_m else None
+    curve = {}
+    for tag, years in _XML_TAG_TO_YEARS.items():
+        m = re.search(rf'<{tag}>([0-9.]+)</{tag}>', block)
+        if m:
+            try:
+                curve[years] = float(m.group(1))
+            except ValueError:
+                pass
+    return curve if len(curve) >= 3 else None, curve_date
+
+
+def _fetch_csv(year):
+    """Try the Treasury CSV download for a given year."""
+    url = (
+        "https://home.treasury.gov/resource-center/data-chart-center/"
+        f"interest-rates/daily-treasury-rates.csv/{year}/all"
+        f"?field_tdr_date_value={year}&type=daily_treasury_yield_curve&page&_format=csv"
+    )
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; bond-tracker/1.0)",
+        "Accept": "text/csv",
+    })
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        csv_text = resp.read().decode("utf-8", errors="replace")
+    lines = csv_text.strip().split("\n")
+    if len(lines) < 2:
+        return None, None
+    header = [h.strip().strip('"') for h in lines[0].split(",")]
+    first_row = [c.strip().strip('"') for c in lines[1].split(",")]
+    if not first_row or not re.match(r'\d{2}/\d{2}/\d{4}', first_row[0]):
+        return None, None
+    curve_date = first_row[0]
+    col_years = {
+        "1 Mo": 1/12, "2 Mo": 2/12, "3 Mo": 3/12, "4 Mo": 4/12,
+        "6 Mo": 6/12, "1 Yr": 1, "2 Yr": 2, "3 Yr": 3, "5 Yr": 5,
+        "7 Yr": 7, "10 Yr": 10, "20 Yr": 20, "30 Yr": 30,
+    }
+    curve = {}
+    for i, col_name in enumerate(header):
+        if col_name in col_years and i < len(first_row) and first_row[i]:
+            try:
+                curve[col_years[col_name]] = float(first_row[i])
+            except ValueError:
+                pass
+    return (curve if len(curve) >= 3 else None), curve_date
+
 
 def fetch_yield_curve():
-    """Fetch latest Treasury yield curve from treasury.gov CSV API."""
+    """Fetch latest Treasury yield curve; tries XML then CSV, falls back to hardcoded rates."""
+    today = date.today()
+    year_month = today.strftime("%Y%m")
+
+    # Try XML feed first (structured, less prone to bot-blocking than HTML)
     try:
-        today = date.today()
-        url = (
-            "https://home.treasury.gov/resource-center/data-chart-center/"
-            "interest-rates/daily-treasury-rates.csv/"
-            f"{today.year}/all?field_tdr_date_value={today.year}"
-            "&type=daily_treasury_yield_curve&page&_format=csv"
-        )
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (compatible; bond-tracker/1.0)",
-            "Accept": "text/csv",
-        })
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            csv_text = resp.read().decode("utf-8", errors="replace")
-        lines = csv_text.strip().split("\n")
-        if len(lines) < 2:
-            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
-        header = [h.strip().strip('"') for h in lines[0].split(",")]
-        first_row = [c.strip().strip('"') for c in lines[1].split(",")]
-        if not first_row or not re.match(r'\d{2}/\d{2}/\d{4}', first_row[0]):
-            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
-        curve_date = first_row[0]
-        col_years = {
-            "1 Mo": 1/12, "2 Mo": 2/12, "3 Mo": 3/12, "4 Mo": 4/12,
-            "6 Mo": 6/12, "1 Yr": 1, "2 Yr": 2, "3 Yr": 3, "5 Yr": 5,
-            "7 Yr": 7, "10 Yr": 10, "20 Yr": 20, "30 Yr": 30,
-        }
-        curve = {}
-        for i, col_name in enumerate(header):
-            if col_name in col_years and i < len(first_row) and first_row[i]:
-                try:
-                    curve[col_years[col_name]] = float(first_row[i])
-                except ValueError:
-                    pass
-        if len(curve) < 3:
-            return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
-        return {"curve": curve, "date": curve_date, "source": "treasury.gov"}
+        curve, curve_date = _fetch_xml(year_month)
+        if curve:
+            return {"curve": curve, "date": curve_date or today.isoformat(), "source": "treasury.gov/xml"}
     except Exception:
-        return {"curve": FALLBACK_CURVE, "date": date.today().isoformat(), "source": "fallback"}
+        pass
+
+    # Try XML for prior month in case current month isn't published yet
+    try:
+        if today.month == 1:
+            prev_ym = f"{today.year - 1}12"
+        else:
+            prev_ym = f"{today.year}{today.month - 1:02d}"
+        curve, curve_date = _fetch_xml(prev_ym)
+        if curve:
+            return {"curve": curve, "date": curve_date or today.isoformat(), "source": "treasury.gov/xml"}
+    except Exception:
+        pass
+
+    # Try CSV download as second option
+    try:
+        curve, curve_date = _fetch_csv(today.year)
+        if curve:
+            return {"curve": curve, "date": curve_date or today.isoformat(), "source": "treasury.gov/csv"}
+    except Exception:
+        pass
+
+    return {"curve": FALLBACK_CURVE, "date": today.isoformat(), "source": "fallback"}
 
 
 def next_coupon(maturity_str, today):
