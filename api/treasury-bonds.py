@@ -28,14 +28,65 @@ TREASURY_BONDS = [
     {"cusip": "91282CNF4", "type": "7Y Note",  "coupon": 4.125, "maturityDate": "2032-05-31"},
 ]
 
-# Updated 2026-07-17 from treasury.gov H.15 / CNBC
+# Updated 2026-07-17 from CNBC markets/bonds
 FALLBACK_CURVE = {2: 4.18, 3: 4.21, 5: 4.28, 7: 4.41, 10: 4.55, 20: 5.09, 30: 5.06}
+
+_CNBC_SYMBOL_TO_YEARS = {
+    "US1M": 1/12, "US3M": 3/12, "US6M": 6/12,
+    "US1Y": 1, "US2Y": 2, "US3Y": 3, "US5Y": 5,
+    "US7Y": 7, "US10Y": 10, "US20Y": 20, "US30Y": 30,
+}
 
 _XML_TAG_TO_YEARS = {
     "BC_1MONTH": 1/12, "BC_2MONTH": 2/12, "BC_3MONTH": 3/12, "BC_4MONTH": 4/12,
     "BC_6MONTH": 6/12, "BC_1YEAR": 1, "BC_2YEAR": 2, "BC_3YEAR": 3, "BC_5YEAR": 5,
     "BC_7YEAR": 7, "BC_10YEAR": 10, "BC_20YEAR": 20, "BC_30YEAR": 30,
 }
+
+
+def _fetch_cnbc():
+    """Fetch Treasury yields from CNBC's quote webservice (powers markets/bonds/ page)."""
+    symbols = "|".join(_CNBC_SYMBOL_TO_YEARS.keys())
+    url = (
+        "https://quote.cnbc.com/quote-html-webservice/quote.htm"
+        f"?symbols={symbols}&requestMethod=itv&noform=1"
+        "&partnerId=2&fund=1&exthrs=1&output=json&events=1"
+    )
+    req = urllib.request.Request(url, headers={
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/javascript, */*",
+        "Referer": "https://www.cnbc.com/",
+        "Origin": "https://www.cnbc.com",
+    })
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        data = json.loads(resp.read().decode("utf-8", errors="replace"))
+
+    quotes = data.get("QuickQuoteResult", {}).get("QuickQuote", [])
+    if isinstance(quotes, dict):
+        quotes = [quotes]
+
+    curve = {}
+    curve_date = None
+    for q in quotes:
+        sym = (q.get("symbol") or q.get("symb") or "").upper()
+        years = _CNBC_SYMBOL_TO_YEARS.get(sym)
+        if years is None:
+            continue
+        last = q.get("last") or q.get("last_price")
+        if last:
+            try:
+                curve[years] = float(str(last).replace(",", ""))
+            except (ValueError, TypeError):
+                pass
+        if not curve_date:
+            ts = q.get("last_time") or q.get("time")
+            if ts:
+                curve_date = str(ts)[:10]
+
+    return (curve if len(curve) >= 3 else None), curve_date
 
 
 def _fetch_xml(year_month):
@@ -106,11 +157,19 @@ def _fetch_csv(year):
 
 
 def fetch_yield_curve():
-    """Fetch latest Treasury yield curve; tries XML then CSV, falls back to hardcoded rates."""
+    """Fetch live Treasury yield curve from CNBC, then treasury.gov, then hardcoded fallback."""
     today = date.today()
-    year_month = today.strftime("%Y%m")
 
-    # Try XML feed first (structured, less prone to bot-blocking than HTML)
+    # 1. CNBC quote webservice (powers cnbc.com/markets/bonds/)
+    try:
+        curve, curve_date = _fetch_cnbc()
+        if curve:
+            return {"curve": curve, "date": curve_date or today.isoformat(), "source": "cnbc.com"}
+    except Exception:
+        pass
+
+    # 2. Treasury XML feed for current month
+    year_month = today.strftime("%Y%m")
     try:
         curve, curve_date = _fetch_xml(year_month)
         if curve:
@@ -118,19 +177,16 @@ def fetch_yield_curve():
     except Exception:
         pass
 
-    # Try XML for prior month in case current month isn't published yet
+    # 3. Treasury XML for prior month (first days of new month before new data publishes)
     try:
-        if today.month == 1:
-            prev_ym = f"{today.year - 1}12"
-        else:
-            prev_ym = f"{today.year}{today.month - 1:02d}"
+        prev_ym = f"{today.year - 1}12" if today.month == 1 else f"{today.year}{today.month - 1:02d}"
         curve, curve_date = _fetch_xml(prev_ym)
         if curve:
             return {"curve": curve, "date": curve_date or today.isoformat(), "source": "treasury.gov/xml"}
     except Exception:
         pass
 
-    # Try CSV download as second option
+    # 4. Treasury CSV download
     try:
         curve, curve_date = _fetch_csv(today.year)
         if curve:
