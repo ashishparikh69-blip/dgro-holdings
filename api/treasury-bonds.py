@@ -44,32 +44,12 @@ _XML_TAG_TO_YEARS = {
 }
 
 
-def _fetch_cnbc():
-    """Fetch Treasury yields from CNBC's quote webservice (powers markets/bonds/ page)."""
-    symbols = "|".join(_CNBC_SYMBOL_TO_YEARS.keys())
-    url = (
-        "https://quote.cnbc.com/quote-html-webservice/quote.htm"
-        f"?symbols={symbols}&requestMethod=itv&noform=1"
-        "&partnerId=2&fund=1&exthrs=1&output=json&events=1"
-    )
-    req = urllib.request.Request(url, headers={
-        "User-Agent": (
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-        ),
-        "Accept": "application/json, text/javascript, */*",
-        "Referer": "https://www.cnbc.com/",
-        "Origin": "https://www.cnbc.com",
-    })
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read().decode("utf-8", errors="replace"))
-
-    quotes = data.get("QuickQuoteResult", {}).get("QuickQuote", [])
-    if isinstance(quotes, dict):
-        quotes = [quotes]
-
+def _parse_cnbc_quotes(quotes):
+    """Extract (curve, curve_date) from a list of CNBC quote dicts."""
     curve = {}
     curve_date = None
+    if isinstance(quotes, dict):
+        quotes = [quotes]
     for q in quotes:
         sym = (q.get("symbol") or q.get("symb") or "").upper()
         years = _CNBC_SYMBOL_TO_YEARS.get(sym)
@@ -85,8 +65,91 @@ def _fetch_cnbc():
             ts = q.get("last_time") or q.get("time")
             if ts:
                 curve_date = str(ts)[:10]
-
     return (curve if len(curve) >= 3 else None), curve_date
+
+
+def _find_in_json(obj, key):
+    """Recursively collect all values for a given key in a nested JSON object."""
+    results = []
+    if isinstance(obj, dict):
+        if key in obj:
+            results.append(obj[key])
+        for v in obj.values():
+            results.extend(_find_in_json(v, key))
+    elif isinstance(obj, list):
+        for item in obj:
+            results.extend(_find_in_json(item, key))
+    return results
+
+
+def _fetch_cnbc():
+    """Fetch Treasury yields from cnbc.com/markets/bonds/ page, then quote API fallback."""
+    _HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    # --- Attempt 1: scrape cnbc.com/markets/bonds/ for embedded __NEXT_DATA__ ---
+    try:
+        req = urllib.request.Request(
+            "https://www.cnbc.com/markets/bonds/",
+            headers={**_HEADERS, "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+
+        m = re.search(r'<script[^>]+id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
+        if m:
+            blob = json.loads(m.group(1))
+            # Try known list keys anywhere in the tree
+            for key in ("data", "quotes", "assets", "rates"):
+                for candidate in _find_in_json(blob, key):
+                    if isinstance(candidate, list):
+                        curve, curve_date = _parse_cnbc_quotes(candidate)
+                        if curve:
+                            return curve, curve_date
+            # Fallback: regex scan raw JSON text for symbol/last pairs
+            raw = m.group(1)
+            curve = {}
+            for sym, years in _CNBC_SYMBOL_TO_YEARS.items():
+                hit = re.search(
+                    rf'"(?:symbol|symb)"\s*:\s*"{re.escape(sym)}"(?:[^{{}}]|{{[^{{}}]*}})*?"last"\s*:\s*"([0-9.]+)"',
+                    raw,
+                )
+                if hit:
+                    try:
+                        curve[years] = float(hit.group(1))
+                    except ValueError:
+                        pass
+            if len(curve) >= 3:
+                date_hit = re.search(r'"(?:last_time|quoteTime|date)"\s*:\s*"(\d{4}-\d{2}-\d{2})', raw)
+                return curve, date_hit.group(1) if date_hit else None
+    except Exception:
+        pass
+
+    # --- Attempt 2: quote.cnbc.com webservice ---
+    try:
+        symbols = "|".join(_CNBC_SYMBOL_TO_YEARS.keys())
+        req = urllib.request.Request(
+            "https://quote.cnbc.com/quote-html-webservice/quote.htm"
+            f"?symbols={symbols}&requestMethod=itv&noform=1"
+            "&partnerId=2&fund=1&exthrs=1&output=json&events=1",
+            headers={**_HEADERS, "Accept": "application/json, text/javascript, */*",
+                     "Referer": "https://www.cnbc.com/", "Origin": "https://www.cnbc.com"},
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        quotes = data.get("QuickQuoteResult", {}).get("QuickQuote", [])
+        curve, curve_date = _parse_cnbc_quotes(quotes)
+        if curve:
+            return curve, curve_date
+    except Exception:
+        pass
+
+    return None, None
 
 
 def _fetch_xml(year_month):
