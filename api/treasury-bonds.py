@@ -152,6 +152,51 @@ def _fetch_cnbc():
     return None, None
 
 
+_FRED_COL_TO_YEARS = {
+    "DGS1MO": 1/12, "DGS3MO": 3/12, "DGS6MO": 6/12,
+    "DGS1": 1, "DGS2": 2, "DGS3": 3, "DGS5": 5,
+    "DGS7": 7, "DGS10": 10, "DGS20": 20, "DGS30": 30,
+}
+
+
+def _fetch_fred():
+    """Fetch Treasury CMT yields from FRED (St. Louis Fed) — same data shown on CNBC."""
+    today = date.today()
+    series = ",".join(_FRED_COL_TO_YEARS.keys())
+    start = today.replace(day=1).isoformat()
+    url = (
+        f"https://fred.stlouisfed.org/graph/fredgraph.csv"
+        f"?id={series}&cosd={start}&coed={today.isoformat()}"
+    )
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; bond-tracker/1.0)",
+        "Accept": "text/csv,text/plain",
+    })
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        csv_text = resp.read().decode("utf-8", errors="replace")
+    lines = [l for l in csv_text.strip().split("\n") if l.strip()]
+    if len(lines) < 2:
+        return None, None
+    header = [h.strip().strip('"') for h in lines[0].split(",")]
+    # Walk backwards to find the most recent row with enough non-missing values
+    for line in reversed(lines[1:]):
+        cols = [c.strip().strip('"') for c in line.split(",")]
+        curve = {}
+        for i, col in enumerate(header[1:], 1):
+            years = _FRED_COL_TO_YEARS.get(col)
+            if years is None or i >= len(cols):
+                continue
+            val = cols[i]
+            if val and val != ".":   # FRED uses "." for missing/not-yet-published values
+                try:
+                    curve[years] = float(val)
+                except ValueError:
+                    pass
+        if len(curve) >= 3:
+            return curve, cols[0]   # cols[0] is the date (YYYY-MM-DD)
+    return None, None
+
+
 def _fetch_xml(year_month):
     """Try the Treasury XML feed for a given YYYYMM string."""
     url = (
@@ -220,10 +265,10 @@ def _fetch_csv(year):
 
 
 def fetch_yield_curve():
-    """Fetch live Treasury yield curve from CNBC, then treasury.gov, then hardcoded fallback."""
+    """Fetch live Treasury yield curve. Priority: CNBC → FRED → treasury.gov → fallback."""
     today = date.today()
 
-    # 1. CNBC quote webservice (powers cnbc.com/markets/bonds/)
+    # 1. CNBC (cnbc.com/markets/bonds/ page scrape + quote API)
     try:
         curve, curve_date = _fetch_cnbc()
         if curve:
@@ -231,7 +276,15 @@ def fetch_yield_curve():
     except Exception:
         pass
 
-    # 2. Treasury XML feed for current month
+    # 2. FRED — St. Louis Fed Treasury CMT rates (same underlying data as CNBC)
+    try:
+        curve, curve_date = _fetch_fred()
+        if curve:
+            return {"curve": curve, "date": curve_date or today.isoformat(), "source": "fred.stlouisfed.org"}
+    except Exception:
+        pass
+
+    # 3. Treasury XML feed for current month
     year_month = today.strftime("%Y%m")
     try:
         curve, curve_date = _fetch_xml(year_month)
@@ -240,7 +293,7 @@ def fetch_yield_curve():
     except Exception:
         pass
 
-    # 3. Treasury XML for prior month (first days of new month before new data publishes)
+    # 4. Treasury XML for prior month (first days of new month before new data publishes)
     try:
         prev_ym = f"{today.year - 1}12" if today.month == 1 else f"{today.year}{today.month - 1:02d}"
         curve, curve_date = _fetch_xml(prev_ym)
@@ -249,7 +302,7 @@ def fetch_yield_curve():
     except Exception:
         pass
 
-    # 4. Treasury CSV download
+    # 5. Treasury CSV download
     try:
         curve, curve_date = _fetch_csv(today.year)
         if curve:
