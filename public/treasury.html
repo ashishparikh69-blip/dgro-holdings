@@ -186,7 +186,8 @@
           document.getElementById('statusText').textContent = 'Stale data — all live sources unavailable, showing cached rates';
           document.getElementById('statusText').style.color = '#ff9800';
         } else {
-          const sourceLabel = json.curveSource === 'cnbc.com' ? 'CNBC' : 'treasury.gov';
+          const sourceLabels = {'cnbc.com': 'CNBC', 'fred.stlouisfed.org': 'FRED'};
+          const sourceLabel = sourceLabels[json.curveSource] || 'treasury.gov';
           document.getElementById('statusText').textContent = 'Live (' + sourceLabel + ') — Curve date: ' + json.curveDate;
         }
         const pstTime = new Date(json.lastUpdated + 'Z').toLocaleTimeString('en-US', {
