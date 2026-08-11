@@ -7,65 +7,50 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FINNHUB_TOKEN = os.environ.get("FINNHUB_TOKEN", "")
 
+# Payout ratios (%) — updated Aug 2026
 PAYOUT_RATIOS = {
-    "CVX":  48.3, "MRK":  48.1, "VZ":   61.8, "KO":   73.4, "TXN":  53.7,
-    "PEP":  70.2, "PG":   67.1, "QCOM": 35.2, "HD":   54.2, "BMY":  55.3,
-    "CMCSA":33.1, "EOG":  25.4, "ADP":  76.3, "OKE":  73.2, "TGT":  50.1,
-    "FAST": 69.1, "F":    47.8, "FITB": 38.2, "KMB":  73.2, "PAYX": 82.3,
-    "CINF": 43.8, "RF":   38.4, "TROW": 62.3, "FNF":  44.8,
+    "AMGN": 53.1, "MRK":  48.1, "KO":   73.4, "UNH":  20.0, "HD":   54.2,
+    "PG":   67.1, "PEP":  70.2, "FAST": 69.1, "FITB": 38.2, "ADM":  52.3,
+    "ARES": 87.1, "CINF": 43.8, "DRI":  51.8, "PFG":  36.1,
 }
 
+# 1-year dividend growth rate (%) — updated Aug 2026
 DIV_GROWTH_1Y = {
-    "CVX":   8.3, "MRK":   5.1, "VZ":   2.1, "KO":   5.2, "TXN":   5.2,
-    "PEP":   7.3, "PG":    5.1, "QCOM": 6.3, "HD":   8.1, "BMY":   3.2,
-    "CMCSA": 7.1, "EOG":   9.8, "ADP": 11.8, "OKE":  3.8, "TGT":   1.8,
-    "FAST":  8.8, "F":    66.7, "FITB": 4.8, "KMB":  1.8, "PAYX":  9.8,
-    "CINF":  7.8, "RF":    7.8, "TROW": 1.8, "FNF":  7.8,
+    "AMGN":  6.5, "MRK":   5.1, "KO":   5.2, "UNH":  12.0, "HD":   8.1,
+    "PG":    5.1, "PEP":   7.3, "FAST": 8.8, "FITB": 4.8,  "ADM":  2.1,
+    "ARES": 19.8, "CINF":  7.8, "DRI":  8.8, "PFG":  6.2,
 }
 
-# 5-year dividend growth rate CAGR (%) — updated May 2026
+# 5-year dividend growth rate CAGR (%) — updated Aug 2026
 DIV_GROWTH_5Y = {
-    "CVX":   6.2, "MRK":   9.1, "VZ":   2.0, "KO":   4.8, "TXN":  12.2,
-    "PEP":   7.2, "PG":    5.8, "QCOM": 7.2, "HD":  13.8, "BMY":   9.8,
-    "CMCSA":12.1, "EOG":  22.8, "ADP": 13.2, "OKE":  3.8, "TGT":   9.2,
-    "FAST": 11.8, "F":     0.0, "FITB": 7.8, "KMB":  3.8, "PAYX": 12.8,
-    "CINF":  7.8, "RF":    9.8, "TROW": 4.8, "FNF":  9.8,
+    "AMGN":  7.8, "MRK":   9.1, "KO":   4.8, "UNH":  18.2, "HD":  13.8,
+    "PG":    5.8, "PEP":   7.2, "FAST":11.8, "FITB": 7.8,  "ADM":  5.8,
+    "ARES": 25.0, "CINF":  7.8, "DRI": 11.8, "PFG":  6.2,
 }
 
+# Trailing 12-month dividend yields (%) — updated Aug 2026
 DIVIDEND_YIELDS = {
-    "CVX":   3.40, "MRK":   3.24, "VZ":    5.53, "KO":    3.05, "TXN":   2.95,
-    "PEP":   3.52, "PG":    2.41, "QCOM":  2.25, "HD":    2.42, "BMY":   4.28,
-    "CMCSA": 4.55, "EOG":   3.05, "ADP":   3.00, "OKE":   4.52, "TGT":   4.05,
-    "FAST":  2.05, "F":     5.48, "FITB":  3.53, "KMB":   5.11, "PAYX":  4.60,
-    "CINF":  2.20, "RF":    4.09, "TROW":  5.52, "FNF":   4.50,
+    "AMGN":  3.20, "MRK":   3.24, "KO":   3.05, "UNH":  1.60, "HD":   2.42,
+    "PG":    2.41, "PEP":   3.52, "FAST": 2.05, "FITB": 3.53, "ADM":  3.80,
+    "ARES":  3.20, "CINF":  2.20, "DRI":  3.50, "PFG":  3.80,
 }
 
-# 24 stocks in both DGRO and SCHD, sorted by SCHD weight desc (May 2026)
+# 14 stocks in both DGRO top-100 and SCHD, sorted by SCHD weight desc (Aug 2026)
 INTERSECTION_HOLDINGS = [
-    {"ticker": "TXN",   "name": "Texas Instruments Inc",      "dgroWeight": 1.32, "schdWeight": 5.82},
-    {"ticker": "QCOM",  "name": "Qualcomm Inc",               "dgroWeight": 1.18, "schdWeight": 5.76},
-    {"ticker": "KO",    "name": "Coca-Cola Co",               "dgroWeight": 1.45, "schdWeight": 4.09},
-    {"ticker": "CVX",   "name": "Chevron Corp",               "dgroWeight": 1.62, "schdWeight": 3.99},
-    {"ticker": "VZ",    "name": "Verizon Communications",     "dgroWeight": 1.38, "schdWeight": 3.74},
-    {"ticker": "MRK",   "name": "Merck & Co Inc",             "dgroWeight": 1.58, "schdWeight": 3.73},
-    {"ticker": "PEP",   "name": "PepsiCo Inc",                "dgroWeight": 1.42, "schdWeight": 3.70},
-    {"ticker": "PG",    "name": "Procter & Gamble Co",        "dgroWeight": 1.98, "schdWeight": 3.63},
-    {"ticker": "HD",    "name": "The Home Depot Inc",         "dgroWeight": 2.21, "schdWeight": 3.36},
-    {"ticker": "BMY",   "name": "Bristol-Myers Squibb Co",    "dgroWeight": 1.25, "schdWeight": 2.95},
-    {"ticker": "CMCSA", "name": "Comcast Corp",               "dgroWeight": 1.35, "schdWeight": 2.30},
-    {"ticker": "ADP",   "name": "Automatic Data Processing",  "dgroWeight": 0.69, "schdWeight": 2.21},
-    {"ticker": "EOG",   "name": "EOG Resources Inc",          "dgroWeight": 0.54, "schdWeight": 1.87},
-    {"ticker": "OKE",   "name": "ONEOK Inc",                  "dgroWeight": 0.13, "schdWeight": 1.43},
-    {"ticker": "TGT",   "name": "Target Corp",                "dgroWeight": 0.67, "schdWeight": 1.42},
-    {"ticker": "FAST",  "name": "Fastenal Co",                "dgroWeight": 0.26, "schdWeight": 1.28},
-    {"ticker": "F",     "name": "Ford Motor Co",              "dgroWeight": 0.51, "schdWeight": 1.21},
-    {"ticker": "FITB",  "name": "Fifth Third Bancorp",        "dgroWeight": 0.36, "schdWeight": 1.12},
-    {"ticker": "KMB",   "name": "Kimberly-Clark Corp",        "dgroWeight": 0.22, "schdWeight": 0.83},
-    {"ticker": "PAYX",  "name": "Paychex Inc",                "dgroWeight": 0.27, "schdWeight": 0.78},
-    {"ticker": "CINF",  "name": "Cincinnati Financial Corp",  "dgroWeight": 0.11, "schdWeight": 0.66},
-    {"ticker": "RF",    "name": "Regions Financial Corp",     "dgroWeight": 0.34, "schdWeight": 0.61},
-    {"ticker": "TROW",  "name": "T. Rowe Price Group Inc",    "dgroWeight": 0.19, "schdWeight": 0.58},
-    {"ticker": "FNF",   "name": "Fidelity National Financial","dgroWeight": 0.09, "schdWeight": 0.31},
+    {"ticker": "AMGN",  "name": "Amgen Inc",               "dgroWeight": 1.30, "schdWeight": 4.30},
+    {"ticker": "MRK",   "name": "Merck & Co Inc",          "dgroWeight": 1.85, "schdWeight": 4.27},
+    {"ticker": "KO",    "name": "Coca-Cola Co",            "dgroWeight": 1.91, "schdWeight": 4.23},
+    {"ticker": "UNH",   "name": "UnitedHealth Group Inc",  "dgroWeight": 1.70, "schdWeight": 4.22},
+    {"ticker": "HD",    "name": "The Home Depot Inc",      "dgroWeight": 2.21, "schdWeight": 4.17},
+    {"ticker": "PG",    "name": "Procter & Gamble Co",     "dgroWeight": 2.19, "schdWeight": 3.97},
+    {"ticker": "PEP",   "name": "PepsiCo Inc",             "dgroWeight": 1.63, "schdWeight": 3.76},
+    {"ticker": "FAST",  "name": "Fastenal Co",             "dgroWeight": 0.24, "schdWeight": 1.40},
+    {"ticker": "FITB",  "name": "Fifth Third Bancorp",     "dgroWeight": 0.34, "schdWeight": 1.30},
+    {"ticker": "ADM",   "name": "Archer-Daniels-Midland",  "dgroWeight": 0.20, "schdWeight": 0.95},
+    {"ticker": "ARES",  "name": "Ares Management Corp",    "dgroWeight": 0.27, "schdWeight": 0.74},
+    {"ticker": "CINF",  "name": "Cincinnati Financial",    "dgroWeight": 0.14, "schdWeight": 0.70},
+    {"ticker": "DRI",   "name": "Darden Restaurants Inc",  "dgroWeight": 0.16, "schdWeight": 0.60},
+    {"ticker": "PFG",   "name": "Principal Financial Group","dgroWeight": 0.16, "schdWeight": 0.57},
 ]
 
 _stooq_cache = {"data": None, "ts": 0}
