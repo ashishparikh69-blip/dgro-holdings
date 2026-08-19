@@ -148,6 +148,7 @@
 
   <footer>
     Prices approximate, as of Aug 2026 — verify before trading. &nbsp;·&nbsp;
+    <sup style="font-size:0.8em">*</sup> price not refreshed (June 2026 value). &nbsp;·&nbsp;
     Par $25 unless noted. &nbsp;·&nbsp;
     Qualified status is general guidance; confirm with a tax advisor. &nbsp;·&nbsp;
     Not investment advice.
@@ -157,6 +158,11 @@
     // [ticker, issuer, sector, price, lo52, hi52, yield, coupon, rateType, qual(Y/P/N), callable, notes]
     // Prices updated Aug 2026 via Yahoo Finance. Tickers marked ⚠ price unverified could not be confirmed.
     // FHN-PRF removed — called/redeemed 7/10/2026.
+    // * = price not refreshed Aug 2026 (June 2026 value shown)
+    const STALE = new Set([
+      "C-PJ","COF-PRN","MET-PRF","EPD-PA","NEE-PP","SO-PC",
+      "PSA-PR","PSA-PP","O-PA","PRU-PB","BHFAN","SCE-PH","SCE-PJ","CIM-PRA",
+    ]);
     const PREFERREDS = [
       ["KEY-PJ",  "KeyCorp",          "Bank",      20.86, 19.97, 23.34, 6.77, 5.65, "Fixed",     "Y", true,  ""],
       ["USB-PS",  "U.S. Bancorp",     "Bank",      17.08, 17.08, 20.62, 5.86, 4.00, "Fixed",     "Y", true,  "Series O 4.50%"],
@@ -259,7 +265,7 @@
         const isK = px > 100; // $1000-par bonds
         const fmt = v => isK ? '$' + v.toLocaleString('en-US') : '$' + v.toFixed(2);
         return `<tr>
-          <td class="ticker">${r[COL.ticker]}</td>
+          <td class="ticker">${r[COL.ticker]}${STALE.has(r[COL.ticker]) ? '<sup style="color:#888;font-size:0.7em">*</sup>' : ''}</td>
           <td class="issuer">${r[COL.issuer]}</td>
           <td class="sector">${r[COL.sector]}</td>
           <td class="price-cell">${fmt(px)}</td>
