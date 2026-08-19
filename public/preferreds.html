@@ -235,6 +235,9 @@
     let sortAsc = false;
 
     function qualLabel(q) { return q === 'Y' ? 'Yes' : q === 'P' ? 'Partial' : 'No'; }
+    // Convert dashboard ticker to QuantumOnline format: drop the -PR or -P preferred marker
+    // e.g. COF-PI → COF-I, COF-PRN → COF-N, MET-PRF → MET-F, ALL-PRH → ALL-H
+    function toQolTicker(t) { return t.replace(/-PR([A-Z])/g, '-$1').replace(/-P([A-Z])/g, '-$1'); }
 
     function populateFilters() {
       const sectors = [...new Set(PREFERREDS.map(r => r[COL.sector]))].sort();
@@ -266,7 +269,7 @@
         const isK = px > 100; // $1000-par bonds
         const fmt = v => isK ? '$' + v.toLocaleString('en-US') : '$' + v.toFixed(2);
         return `<tr>
-          <td class="ticker"><a href="https://www.quantumonline.com/search.cfm?tickersymbol=${r[COL.ticker]}&sopt=symbol" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px dotted #666">${r[COL.ticker]}${STALE.has(r[COL.ticker]) ? '<sup style="color:#888;font-size:0.7em">*</sup>' : ''}</a></td>
+          <td class="ticker"><a href="https://www.quantumonline.com/search.cfm?tickersymbol=${toQolTicker(r[COL.ticker])}&sopt=symbol" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px dotted #666">${r[COL.ticker]}${STALE.has(r[COL.ticker]) ? '<sup style="color:#888;font-size:0.7em">*</sup>' : ''}</a></td>
           <td class="issuer">${r[COL.issuer]}</td>
           <td class="sector">${r[COL.sector]}</td>
           <td class="price-cell">${fmt(px)}</td>
