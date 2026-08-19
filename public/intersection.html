@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DGRO ∩ SCHD — Shared Holdings</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -81,6 +82,9 @@
     col.col-yield       { width: 80px; }
     col.col-low         { width: 90px; }
     col.col-high        { width: 90px; }
+    col.col-payout      { width: 90px; }
+    col.col-dgr         { width: 90px; }
+    col.col-dgr5        { width: 90px; }
     col.col-range       { width: 100px; }
     col.col-var         { width: 110px; }
     thead th {
@@ -141,14 +145,24 @@
       background: #2d4a5e;
       border-radius: 3px;
       position: relative;
+      overflow: hidden;
+    }
+    .range-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: rgba(79, 195, 247, 0.35);
+      border-radius: 3px;
+      pointer-events: none;
     }
     .range-dot {
       position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+      width: 3px;
+      height: 100%;
+      border-radius: 1px;
       background: #4fc3f7;
-      top: -2px;
+      top: 0;
       transform: translateX(-50%);
     }
     .variance-cell {
@@ -220,14 +234,21 @@
   </style>
 </head>
 <body>
-  <header>
+  <header style="display:flex; align-items:center; gap:20px;">
+    <a href="/" aria-label="SUCABA — Investment Site" style="flex-shrink:0; text-decoration:none;">
+      <img src="/logo.png" alt="SUCABA — Investment Site" style="height:90px; width:auto; display:block; border-radius:8px;">
+    </a>
+    <div>
     <h1><span class="dgro">DGRO</span> <span style="color:#8899aa">∩</span> <span class="schd">SCHD</span> — Shared Holdings</h1>
-    <div class="subtitle">25 stocks held by both iShares DGRO and Schwab SCHD dividend ETFs</div>
+    <div class="subtitle">24 stocks held by both iShares DGRO and Schwab SCHD dividend ETFs</div>
+    </div>
   </header>
   <nav class="page-nav">
     <a href="/" class="nav-link">DGRO</a>
     <a href="/schd" class="nav-link">SCHD</a>
     <a href="/intersection" class="nav-link active">DGRO ∩ SCHD</a>
+    <a href="/treasury" class="nav-link">Treasuries<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
+    <a href="/preferreds" class="nav-link">Preferreds<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
   </nav>
   <div class="meta-bar">
     <div class="status">
@@ -242,7 +263,7 @@
   <div class="table-container">
     <div id="loading" class="loading-overlay">
       <div class="spinner"></div>
-      <div style="color: #6688aa;">Fetching market data for 25 holdings...</div>
+      <div style="color: #6688aa;">Fetching market data for 24 holdings...</div>
     </div>
     <table id="holdingsTable" style="display:none;">
       <colgroup>
@@ -253,6 +274,9 @@
         <col class="col-schd-weight">
         <col class="col-price">
         <col class="col-yield">
+        <col class="col-payout">
+        <col class="col-dgr">
+        <col class="col-dgr5">
         <col class="col-low">
         <col class="col-high">
         <col class="col-range">
@@ -267,6 +291,9 @@
           <th data-col="schdWeight" class="th-schd">SCHD Wt% <span class="sort-arrow"></span></th>
           <th data-col="price">Price <span class="sort-arrow"></span></th>
           <th data-col="yield">Yield% <span class="sort-arrow"></span></th>
+          <th data-col="payoutRatio">Payout% <span class="sort-arrow"></span></th>
+          <th data-col="divGrowth1Y">1Y DGR% <span class="sort-arrow"></span></th>
+          <th data-col="divGrowth5Y">5Y DGR% <span class="sort-arrow"></span></th>
           <th data-col="fiftyTwoWeekLow">52W Low <span class="sort-arrow"></span></th>
           <th data-col="fiftyTwoWeekHigh">52W High <span class="sort-arrow"></span></th>
           <th data-col="range">52W Range</th>
@@ -336,9 +363,11 @@
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = filtered.map((h, i) => {
         const vc = getVarianceColor(h.varianceFromLow);
-        const rangePercent = (h.fiftyTwoWeekLow && h.fiftyTwoWeekHigh && h.price)
-          ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
-          : 0;
+        const rangePercent = Math.max(0, Math.min(100,
+          (h.fiftyTwoWeekLow && h.fiftyTwoWeekHigh && h.price && h.fiftyTwoWeekHigh > h.fiftyTwoWeekLow)
+            ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
+            : 0
+        ));
         const dgroBarWidth = Math.min((h.dgroWeight / 3.5) * 30, 30);
         const schdBarWidth = Math.min((h.schdWeight / 5.0) * 30, 30);
 
@@ -350,11 +379,15 @@
           <td class="schd-weight-cell">${h.schdWeight.toFixed(2)}%<span class="weight-bar-schd" style="width:${schdBarWidth}px"></span></td>
           <td class="price-cell">${h.price !== null ? '$' + h.price.toFixed(2) : '—'}</td>
           <td class="yield-cell">${h.yield !== null ? h.yield.toFixed(2) + '%' : '—'}</td>
+          <td>${h.payoutRatio !== null && h.payoutRatio !== undefined ? h.payoutRatio.toFixed(1) + '%' : '—'}</td>
+          <td style="color:${h.divGrowth1Y > 0 ? '#81c784' : h.divGrowth1Y < 0 ? '#ef5350' : '#e0e0e0'}">${h.divGrowth1Y !== null && h.divGrowth1Y !== undefined ? (h.divGrowth1Y > 0 ? '+' : '') + h.divGrowth1Y.toFixed(1) + '%' : '—'}</td>
+          <td style="color:${h.divGrowth5Y > 0 ? '#81c784' : h.divGrowth5Y < 0 ? '#ef5350' : '#e0e0e0'}">${h.divGrowth5Y !== null && h.divGrowth5Y !== undefined ? (h.divGrowth5Y > 0 ? '+' : '') + h.divGrowth5Y.toFixed(1) + '%' : '—'}</td>
           <td>${h.fiftyTwoWeekLow !== null ? '$' + h.fiftyTwoWeekLow.toFixed(2) : '—'}</td>
           <td>${h.fiftyTwoWeekHigh !== null ? '$' + h.fiftyTwoWeekHigh.toFixed(2) : '—'}</td>
           <td>
             <div class="range-bar">
               <div class="range-track">
+                <div class="range-fill" style="width:${rangePercent}%"></div>
                 <div class="range-dot" style="left:${rangePercent}%"></div>
               </div>
             </div>

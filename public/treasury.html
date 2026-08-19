@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top Treasury Bonds — 20Y or Less</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script defer src="/_vercel/insights/script.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1923;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1a2634, #243447);
+      padding: 24px 32px;
+      border-bottom: 2px solid #2d4a5e;
+    }
+    header h1 { font-size: 28px; font-weight: 700; color: #ffffff; }
+    header h1 span { color: #4fc3f7; }
+    .subtitle { color: #8899aa; margin-top: 4px; font-size: 14px; }
+    .page-nav {
+      display: flex; gap: 4px; padding: 10px 32px;
+      background: #111e29; border-bottom: 1px solid #1e3040;
+    }
+    .nav-link {
+      padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      color: #6688aa; text-decoration: none; transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover { background: #1a2e3e; color: #e0e0e0; }
+    .nav-link.active { background: #1a2e3e; color: #4fc3f7; }
+    .meta-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 32px; background: #162028;
+      border-bottom: 1px solid #1e3040; font-size: 13px; color: #6688aa;
+    }
+    .meta-bar .status { display: flex; align-items: center; gap: 8px; }
+    .meta-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }
+    .meta-bar .dot.loading { background: #ff9800; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .curve-bar {
+      display: flex; gap: 16px; padding: 12px 32px; background: #13202b;
+      border-bottom: 1px solid #1e3040; font-size: 12px; color: #6688aa;
+      flex-wrap: wrap; align-items: center;
+    }
+    .curve-bar .curve-label { font-weight: 600; color: #8899aa; margin-right: 4px; }
+    .curve-item { display: flex; gap: 4px; }
+    .curve-item .tenor { color: #6688aa; }
+    .curve-item .rate { color: #81c784; font-weight: 600; }
+    .table-container { overflow-x: auto; padding: 0 8px 32px; }
+    table {
+      width: auto; min-width: 100%; border-collapse: collapse;
+      margin-top: 8px; font-size: 14px; table-layout: fixed;
+    }
+    col.col-rank   { width: 48px; }
+    col.col-cusip  { width: 110px; }
+    col.col-type   { width: 90px; }
+    col.col-coupon { width: 80px; }
+    col.col-mat    { width: 110px; }
+    col.col-left   { width: 70px; }
+    col.col-price  { width: 90px; }
+    col.col-cy     { width: 90px; }
+    col.col-ytm    { width: 80px; }
+    col.col-ncp    { width: 110px; }
+    thead th {
+      background: #1a2634; padding: 10px 8px; text-align: right;
+      font-weight: 600; color: #8899aa; text-transform: uppercase;
+      font-size: 11px; letter-spacing: 0.5px; border-bottom: 2px solid #2d4a5e;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      position: sticky; top: 0; z-index: 1;
+    }
+    thead th:first-child,
+    thead th:nth-child(2),
+    thead th:nth-child(3) { text-align: left; }
+    thead th:hover { color: #4fc3f7; }
+    thead th .sort-arrow { margin-left: 4px; font-size: 10px; }
+    tbody tr { border-bottom: 1px solid #1e3040; transition: background 0.15s; }
+    tbody tr:hover { background: #1a2e3e; }
+    td { padding: 9px 8px; text-align: right; white-space: nowrap; }
+    td:first-child { text-align: center; color: #6688aa; }
+    td:nth-child(2) { text-align: left; font-weight: 700; color: #4fc3f7; }
+    td:nth-child(3) { text-align: left; color: #aabbcc; }
+    .yield-cell { color: #81c784; font-weight: 600; }
+    .price-cell { color: #ffffff; font-weight: 600; }
+    .ytm-cell { color: #ffd54f; font-weight: 700; }
+    .type-20y { color: #ffd54f; }
+    .type-10y { color: #4fc3f7; }
+    .type-7y  { color: #ce93d8; }
+    .loading-overlay {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px 0; gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid #2d4a5e;
+      border-top-color: #4fc3f7; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg { color: #ef5350; padding: 40px; text-align: center; }
+  </style>
+</head>
+<body>
+  <header style="display:flex; align-items:center; gap:20px;">
+    <a href="/" aria-label="SUCABA — Investment Site" style="flex-shrink:0; text-decoration:none;">
+      <img src="/logo.png" alt="SUCABA — Investment Site" style="height:90px; width:auto; display:block; border-radius:8px;">
+    </a>
+    <div>
+    <h1>Top <span>Treasury Bonds</span> — 20Y or Less</h1>
+    <div class="subtitle">Highest yielding U.S. Treasury securities with ≤20 year maturities</div>
+    </div>
+  </header>
+  <nav class="page-nav">
+    <a href="/" class="nav-link">DGRO</a>
+    <a href="/schd" class="nav-link">SCHD</a>
+    <a href="/intersection" class="nav-link">DGRO ∩ SCHD</a>
+    <a href="/treasury" class="nav-link active">Treasuries<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
+    <a href="/preferreds" class="nav-link">Preferreds<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
+  </nav>
+  <div class="meta-bar">
+    <div class="status">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Loading...</span>
+    </div>
+    <div id="lastUpdated"></div>
+  </div>
+  <div class="curve-bar" id="curveBar" style="display:none;">
+    <span class="curve-label">Yield Curve:</span>
+  </div>
+  <div class="table-container">
+    <div id="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <div style="color: #6688aa;">Fetching Treasury yield data...</div>
+    </div>
+    <table id="bondsTable" style="display:none;">
+      <colgroup>
+        <col class="col-rank">
+        <col class="col-cusip">
+        <col class="col-type">
+        <col class="col-coupon">
+        <col class="col-mat">
+        <col class="col-left">
+        <col class="col-price">
+        <col class="col-cy">
+        <col class="col-ytm">
+        <col class="col-ncp">
+      </colgroup>
+      <thead>
+        <tr>
+          <th data-col="rank"># <span class="sort-arrow"></span></th>
+          <th data-col="cusip">CUSIP <span class="sort-arrow"></span></th>
+          <th data-col="type">Type <span class="sort-arrow"></span></th>
+          <th data-col="coupon">Coupon <span class="sort-arrow"></span></th>
+          <th data-col="maturityDate">Maturity <span class="sort-arrow"></span></th>
+          <th data-col="yearsLeft">Time Left <span class="sort-arrow"></span></th>
+          <th data-col="price">Est. Price <span class="sort-arrow"></span></th>
+          <th data-col="currentYield">Cur. Yield <span class="sort-arrow"></span></th>
+          <th data-col="ytm">YTM <span class="sort-arrow"></span></th>
+          <th data-col="nextCouponDate">Next Payout <span class="sort-arrow"></span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let bondsData = [];
+    let sortCol = 'rank';
+    let sortAsc = true;
+
+    async function fetchData() {
+      document.getElementById('statusDot').className = 'dot loading';
+      document.getElementById('statusText').textContent = 'Fetching data...';
+      try {
+        const res = await fetch('/api/treasury-bonds');
+        const json = await res.json();
+        bondsData = json.bonds;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('bondsTable').style.display = '';
+        const isFallback = json.curveSource === 'fallback';
+        document.getElementById('statusDot').className = 'dot';
+        if (isFallback) {
+          document.getElementById('statusDot').style.background = '#ff9800';
+          document.getElementById('statusText').textContent = 'Stale data — all live sources unavailable, showing cached rates';
+          document.getElementById('statusText').style.color = '#ff9800';
+        } else {
+          const sourceLabels = {'cnbc.com': 'CNBC', 'fred.stlouisfed.org': 'FRED'};
+          const sourceLabel = sourceLabels[json.curveSource] || 'treasury.gov';
+          document.getElementById('statusText').textContent = 'Live (' + sourceLabel + ') — Curve date: ' + json.curveDate;
+        }
+        const pstTime = new Date(json.lastUpdated + 'Z').toLocaleTimeString('en-US', {
+          timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        document.getElementById('lastUpdated').textContent = 'Last updated: ' + pstTime + ' PST';
+
+        if (json.yieldCurve) {
+          const bar = document.getElementById('curveBar');
+          const tenorLabels = {
+            '0.08333333333333333': '1M', '0.16666666666666666': '2M',
+            '0.25': '3M', '0.3333333333333333': '4M', '0.5': '6M',
+            '1': '1Y', '2': '2Y', '3': '3Y', '5': '5Y',
+            '7': '7Y', '10': '10Y', '20': '20Y', '30': '30Y',
+          };
+          const show = ['2', '3', '5', '7', '10', '20', '30'];
+          let html = '<span class="curve-label">Yield Curve:</span>';
+          for (const key of show) {
+            const val = json.yieldCurve[key];
+            if (val !== undefined) {
+              const label = tenorLabels[key] || key + 'Y';
+              html += `<span class="curve-item"><span class="tenor">${label}</span><span class="rate">${val.toFixed(2)}%</span></span>`;
+            }
+          }
+          bar.innerHTML = html;
+          bar.style.display = '';
+        }
+        renderTable();
+      } catch (err) {
+        document.getElementById('loading').innerHTML =
+          '<div class="error-msg">Failed to load data. ' + err.message + '</div>';
+        document.getElementById('statusDot').className = 'dot';
+        document.getElementById('statusDot').style.background = '#ef5350';
+        document.getElementById('statusText').textContent = 'Error';
+      }
+    }
+
+    function typeClass(type) {
+      if (type.startsWith('20Y')) return 'type-20y';
+      if (type.startsWith('10Y')) return 'type-10y';
+      return 'type-7y';
+    }
+
+    function renderTable() {
+      let data = [...bondsData];
+      data.sort((a, b) => {
+        let va = a[sortCol], vb = b[sortCol];
+        if (va === null || va === undefined) return 1;
+        if (vb === null || vb === undefined) return -1;
+        if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+        return sortAsc ? va - vb : vb - va;
+      });
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = data.map(b => `<tr>
+        <td>${b.rank}</td>
+        <td>${b.cusip}</td>
+        <td class="${typeClass(b.type)}">${b.type}</td>
+        <td>${b.coupon.toFixed(3)}%</td>
+        <td>${b.maturityDate}</td>
+        <td>${b.yearsLeft}Y</td>
+        <td class="price-cell">$${b.price.toFixed(2)}</td>
+        <td class="yield-cell">${b.currentYield.toFixed(2)}%</td>
+        <td class="ytm-cell">${b.ytm.toFixed(3)}%</td>
+        <td style="color:#80cbc4">${b.nextCouponDate || '—'}</td>
+      </tr>`).join('');
+
+      document.querySelectorAll('thead th').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (!arrow) return;
+        arrow.textContent = th.dataset.col === sortCol ? (sortAsc ? ' ▲' : ' ▼') : '';
+      });
+    }
+
+    document.querySelectorAll('thead th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (sortCol === col) { sortAsc = !sortAsc; }
+        else { sortCol = col; sortAsc = col === 'rank' || col === 'cusip' || col === 'type' || col === 'maturityDate'; }
+        renderTable();
+      });
+    });
+
+    fetchData();
+    setInterval(fetchData, 5 * 60 * 1000);
+  </script>
+
+  <footer style="text-align:center; padding: 18px 16px 28px; font-size: 11px; color: #556677; line-height: 1.6;">
+    Prices estimated from Treasury yield curve (updated daily). &nbsp;·&nbsp;
+    YTM = yield-to-maturity interpolated from constant maturity curve. &nbsp;·&nbsp;
+    Current Yield = annual coupon / estimated price. &nbsp;·&nbsp;
+    Auto-refreshes every 5 minutes.
+  </footer>
+</body>
+</html>
