@@ -160,8 +160,9 @@
     // FHN-PRF removed — called/redeemed 7/10/2026.
     // * = price not refreshed Aug 2026 (June 2026 value shown)
     const STALE = new Set([
-      "C-PJ","COF-PRN","MET-PRF","EPD-PA","NEE-PP","SO-PC",
-      "PSA-PR","PSA-PP","O-PA","PRU-PB","BHFAN","SCE-PH","SCE-PJ","CIM-PRA",
+      // prices could not be found on any source — June 2026 value shown
+      "COF-PRN","MET-PRF","EPD-PA","NEE-PP","SO-PC",
+      "PRU-PB","BHFAN","SCE-PH","SCE-PJ","CIM-PRA",
     ]);
     const PREFERREDS = [
       ["KEY-PJ",  "KeyCorp",          "Bank",      20.86, 19.97, 23.34, 6.77, 5.65, "Fixed",     "Y", true,  ""],
@@ -175,7 +176,7 @@
       ["BAC-PL",  "Bank of America",  "Bank",      1292,  1150,  1350,  5.61, 7.25, "Fixed",     "Y", false, "$1,000 par — no call"],
       ["BAC-PK",  "Bank of America",  "Bank",      23.63, 23.36, 25.38, 6.34, 6.00, "Fixed",     "Y", true,  ""],
       ["WFC-PL",  "Wells Fargo",      "Bank",      1164,  1133,  1271,  6.44, 7.50, "Fixed",     "Y", false, "$1,000 par — no call"],
-      ["C-PJ",    "Citigroup",        "Bank",      24.65, 22.50, 26.00, 7.00, 7.13, "Fixed",     "Y", true,  ""],
+      ["C-PJ",    "Citigroup",        "Bank",      27.83, 22.50, 27.83, 6.40, 7.13, "Fixed",     "Y", true,  ""],
       ["GS-PA",   "Goldman Sachs",    "Bank",      19.20, 18.90, 25.50, 7.16, 5.50, "Fixed",     "Y", true,  ""],
       ["MS-PE",   "Morgan Stanley",   "Bank",      25.54, 23.50, 26.00, 6.73, 6.88, "Fixed",     "Y", true,  ""],
       ["PRU-PB",  "Prudential",       "Insurance", 24.20, 22.50, 25.80, 5.90, 5.63, "Fixed",     "Y", true,  ""],
@@ -183,9 +184,9 @@
       ["NEE-PP",  "NextEra Energy",   "Utility",   24.50, 22.80, 26.00, 5.65, 5.65, "Fixed",     "Y", true,  ""],
       ["DUK-PA",  "Duke Energy",      "Utility",   24.00, 23.20, 26.00, 5.99, 5.75, "Fixed",     "Y", true,  ""],
       ["SO-PC",   "Southern Co.",     "Utility",   24.20, 22.50, 25.50, 5.25, 5.25, "Fixed",     "Y", true,  ""],
-      ["PSA-PR",  "Public Storage",   "REIT",      25.05, 23.00, 26.50, 5.20, 5.20, "Fixed",     "P", true,  "⚠ price unverified — check before trading"],
-      ["PSA-PP",  "Public Storage",   "REIT",      24.65, 22.50, 26.20, 4.95, 4.88, "Fixed",     "P", true,  "⚠ price unverified — check before trading"],
-      ["O-PA",    "Realty Income",    "REIT",      25.20, 23.50, 26.80, 6.00, 6.00, "Fixed",     "P", true,  ""],
+      ["PSA-PR",  "Public Storage",   "REIT",      14.93, 14.93, 26.50, 8.71, 5.20, "Fixed",     "P", true,  ""],
+      ["PSA-PP",  "Public Storage",   "REIT",      15.01, 15.01, 26.20, 8.13, 4.88, "Fixed",     "P", true,  ""],
+      ["O-PA",    "Realty Income",    "REIT",      17.99, 17.99, 26.80, 8.34, 6.00, "Fixed",     "P", true,  ""],
       ["DLR-PL",  "Digital Realty",   "REIT",      19.20, 19.00, 25.50, 6.77, 5.20, "Fixed",     "P", true,  ""],
       // --- additional fixed-rate perpetual preferreds (approximate, Aug 2026) ---
       ["TFC-PR",  "Truist Financial", "Bank",      17.58, 17.58, 21.60, 6.75, 4.75, "Fixed",     "Y", true,  "Series R"],
