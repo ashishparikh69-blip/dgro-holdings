@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dividend growth stocks based on DGRO</title>
+  <title>Dividend growth stocks based on VIG</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
@@ -74,15 +74,15 @@
     }
     col.col-rank   { width: 48px; }
     col.col-ticker { width: 72px; }
-    col.col-name   { width: 180px; }
+    col.col-name   { width: 200px; }
     col.col-weight { width: 110px; }
     col.col-price  { width: 90px; }
     col.col-yield  { width: 80px; }
-    col.col-low    { width: 90px; }
-    col.col-high   { width: 90px; }
     col.col-payout { width: 90px; }
     col.col-dgr    { width: 90px; }
     col.col-dgr5   { width: 90px; }
+    col.col-low    { width: 90px; }
+    col.col-high   { width: 90px; }
     col.col-range  { width: 100px; }
     col.col-var    { width: 110px; }
     thead th {
@@ -224,14 +224,14 @@
       <img src="/logo.png" alt="SUCABA — Investment Site" style="height:90px; width:auto; display:block; border-radius:8px;">
     </a>
     <div>
-    <h1>Dividend growth stocks based on <span>DGRO</span></h1>
-    <div class="subtitle">Inspired by DGRO iShares Core Dividend Growth ETF</div>
+    <h1>Dividend growth stocks based on <span>VIG</span></h1>
+    <div class="subtitle">Inspired by VIG Vanguard Dividend Appreciation ETF · Top 100 holdings</div>
     </div>
   </header>
   <nav class="page-nav">
-    <a href="/" class="nav-link active">DGRO</a>
+    <a href="/" class="nav-link">DGRO</a>
     <a href="/schd" class="nav-link">SCHD</a>
-    <a href="/vig" class="nav-link">VIG<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
+    <a href="/vig" class="nav-link active">VIG<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
     <a href="/intersection" class="nav-link">DGRO ∩ SCHD</a>
     <a href="/treasury" class="nav-link">Treasuries<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
     <a href="/preferreds" class="nav-link">Preferreds<span style="font-size:9px;background:#7c4dff;color:#fff;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;font-weight:700;">BETA</span></a>
@@ -249,7 +249,7 @@
   <div class="table-container">
     <div id="loading" class="loading-overlay">
       <div class="spinner"></div>
-      <div style="color: #6688aa;">Fetching market data for 98 holdings...</div>
+      <div style="color: #6688aa;">Fetching market data for 100 holdings...</div>
     </div>
     <table id="holdingsTable" style="display:none;">
       <colgroup>
@@ -297,7 +297,7 @@
       document.getElementById('statusDot').className = 'dot loading';
       document.getElementById('statusText').textContent = 'Fetching data...';
       try {
-        const res = await fetch('/api/holdings');
+        const res = await fetch('/api/vig-holdings');
         const json = await res.json();
         holdingsData = json.holdings;
         document.getElementById('loading').style.display = 'none';
@@ -352,7 +352,7 @@
             ? ((h.price - h.fiftyTwoWeekLow) / (h.fiftyTwoWeekHigh - h.fiftyTwoWeekLow) * 100)
             : 0
         ));
-        const maxWeight = 3.5;
+        const maxWeight = 5.0;
         const barWidth = Math.min((h.weight / maxWeight) * 36, 36);
 
         return `<tr>
@@ -386,7 +386,7 @@
         const arrow = th.querySelector('.sort-arrow');
         if (!arrow) return;
         if (th.dataset.col === sortCol) {
-          arrow.textContent = sortAsc ? ' \u25B2' : ' \u25BC';
+          arrow.textContent = sortAsc ? ' ▲' : ' ▼';
         } else {
           arrow.textContent = '';
         }
@@ -411,14 +411,15 @@
     // Search
     document.getElementById('searchInput').addEventListener('input', renderTable);
 
-    // Initial fetch and auto-refresh every 60 s (Finnhub real-time cadence)
+    // Initial fetch and auto-refresh every 60 s
     fetchData();
     setInterval(fetchData, 60 * 1000);
   </script>
 
   <footer style="text-align:center; padding: 18px 16px 28px; font-size: 11px; color: #556677; line-height: 1.6;">
     Prices update every ~2 min during US market hours (Mon–Fri 9:30 am – 4:00 pm ET), otherwise reflect last close. &nbsp;·&nbsp;
-    52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values.
+    52W range updated daily. &nbsp;·&nbsp; Dividend yields are approximate trailing 12-month values. &nbsp;·&nbsp;
+    Holdings reflect VIG Vanguard Dividend Appreciation ETF top 100 constituents (Aug 2026).
   </footer>
 </body>
 </html>
