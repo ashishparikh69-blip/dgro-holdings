@@ -191,9 +191,43 @@
     .controls{flex-direction:column}
     .search-box{max-width:100%}
   }
+
+  /* Site nav */
+  .page-nav {
+    display: flex;
+    gap: 2px;
+    padding: 8px 16px;
+    background: #0f1923;
+    overflow-x: auto;
+    margin: -2rem -1rem 1.5rem;
+    width: calc(100% + 2rem);
+  }
+  .nav-link {
+    padding: 6px 14px;
+    color: #8899aa;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .nav-link:hover { background: #1a2e3e; color: #e0e0e0; }
+  .nav-link.active { background: #1a2e3e; color: #4fc3f7; }
 </style>
 </head>
 <body>
+  <nav class="page-nav">
+    <a href="/" class="nav-link">DGRO</a>
+    <a href="/schd" class="nav-link">SCHD</a>
+    <a href="/vig" class="nav-link">VIG</a>
+    <a href="/intersection" class="nav-link">DGRO &cap; SCHD</a>
+    <a href="/dgro-vig" class="nav-link">DGRO &cap; VIG</a>
+    <a href="/treasury" class="nav-link">Treasuries</a>
+    <a href="/preferreds" class="nav-link">Preferreds</a>
+    <a href="/sp500-fcf" class="nav-link active">S&amp;P 500 FCF</a>
+  </nav>
+
 
 <header>
   <h1>S&P 500 · Free Cash Flow Yields</h1>
