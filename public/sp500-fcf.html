@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S&P 500 FCF Yields</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --bg: #f3f4f6;
+    --bg-surface: #ffffff;
+    --bg-header: #1b1f27;
+    --text: #1b1f27;
+    --text-mid: #4b5563;
+    --text-dim: #9ca3af;
+    --accent: #2563eb;
+    --accent-soft: rgba(37,99,235,0.08);
+    --green: #059669;
+    --green-bg: rgba(5,150,105,0.07);
+    --amber: #d97706;
+    --amber-bg: rgba(217,119,6,0.07);
+    --red: #dc2626;
+    --border: #e5e7eb;
+    --border-light: #f0f1f3;
+    --row-hover: rgba(37,99,235,0.04);
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  @media(prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg: #0f1117;
+      --bg-surface: #1a1d27;
+      --bg-header: #0d0f14;
+      --text: #e5e7eb;
+      --text-mid: #9ca3af;
+      --text-dim: #6b7280;
+      --accent: #60a5fa;
+      --accent-soft: rgba(96,165,250,0.1);
+      --green: #34d399;
+      --green-bg: rgba(52,211,153,0.1);
+      --amber: #fbbf24;
+      --amber-bg: rgba(251,191,36,0.08);
+      --red: #f87171;
+      --border: #2a2d38;
+      --border-light: #22252e;
+      --row-hover: rgba(96,165,250,0.06);
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg: #0f1117;
+    --bg-surface: #1a1d27;
+    --bg-header: #0d0f14;
+    --text: #e5e7eb;
+    --text-mid: #9ca3af;
+    --text-dim: #6b7280;
+    --accent: #60a5fa;
+    --accent-soft: rgba(96,165,250,0.1);
+    --green: #34d399;
+    --green-bg: rgba(52,211,153,0.1);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251,191,36,0.08);
+    --red: #f87171;
+    --border: #2a2d38;
+    --border-light: #22252e;
+    --row-hover: rgba(96,165,250,0.06);
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;
+    padding:2rem 1rem 3rem;max-width:1100px;margin:0 auto;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  header{margin-bottom:1.5rem}
+  h1{
+    font-family:'Space Mono',monospace;font-size:1.35rem;font-weight:700;
+    letter-spacing:-0.02em;color:var(--text);margin-bottom:0.3rem;
+  }
+  .subtitle{font-size:0.8rem;color:var(--text-dim);letter-spacing:0.01em}
+  .subtitle span{color:var(--accent);font-weight:600}
+
+  /* Controls */
+  .controls{
+    display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;
+  }
+  .search-box{
+    flex:1;min-width:180px;max-width:320px;
+    padding:0.45rem 0.7rem 0.45rem 2rem;
+    border:1px solid var(--border);border-radius:5px;
+    background:var(--bg-surface);color:var(--text);font-size:0.82rem;
+    font-family:inherit;outline:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='6' cy='6' r='4.5'/%3E%3Cline x1='9.5' y1='9.5' x2='13' y2='13'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:0.6rem center;
+  }
+  .search-box:focus{border-color:var(--accent)}
+  .search-box::placeholder{color:var(--text-dim)}
+
+  .pill-group{display:flex;gap:0;border:1px solid var(--border);border-radius:5px;overflow:hidden}
+  .pill{
+    padding:0.4rem 0.7rem;font-size:0.72rem;font-weight:600;
+    letter-spacing:0.03em;text-transform:uppercase;
+    background:var(--bg-surface);color:var(--text-mid);border:none;cursor:pointer;
+    border-right:1px solid var(--border);font-family:inherit;
+    transition:background 0.15s,color 0.15s;
+  }
+  .pill:last-child{border-right:none}
+  .pill:hover{background:var(--accent-soft);color:var(--accent)}
+  .pill.active{background:var(--accent);color:#fff}
+
+  .stat-row{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:0.6rem;margin-bottom:1.2rem;
+  }
+  .stat-card{
+    background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;
+    padding:0.7rem 0.9rem;box-shadow:var(--shadow);
+  }
+  .stat-label{font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-dim);margin-bottom:0.15rem}
+  .stat-value{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--text)}
+  .stat-value.green{color:var(--green)}
+
+  /* Table */
+  .table-container{
+    background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;
+    box-shadow:var(--shadow-lg);overflow:hidden;
+  }
+  .table-scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;white-space:nowrap}
+  thead{position:sticky;top:0;z-index:2}
+  thead th{
+    background:var(--bg-header);color:#e5e7eb;
+    font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;
+    padding:0.65rem 0.7rem;text-align:left;cursor:pointer;user-select:none;
+    border-bottom:1px solid var(--border);position:relative;
+  }
+  thead th:hover{color:#fff}
+  thead th.sorted-asc::after{content:" ▲";font-size:0.55rem;color:var(--accent)}
+  thead th.sorted-desc::after{content:" ▼";font-size:0.55rem;color:var(--accent)}
+  thead th.num{text-align:right}
+
+  tbody td{
+    padding:0.5rem 0.7rem;border-bottom:1px solid var(--border-light);
+    font-size:0.82rem;color:var(--text-mid);
+  }
+  tbody tr:hover{background:var(--row-hover)}
+  tbody tr:last-child td{border-bottom:none}
+
+  td.rank{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--text-dim);width:2.5rem}
+  td.ticker-col{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:0.85rem;
+    color:var(--text);letter-spacing:-0.01em;
+  }
+  td.name-col{color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis}
+  td.num{text-align:right;font-family:'Space Mono',monospace;font-size:0.8rem}
+  td.yield-col{
+    font-weight:700;font-size:0.85rem;text-align:right;
+    font-family:'Space Mono',monospace;
+  }
+  td.yield-col.high{color:var(--green)}
+  td.yield-col.mid{color:var(--amber)}
+  td.yield-col.low{color:var(--text-dim)}
+
+  .sector-chip{
+    display:inline-block;font-size:0.65rem;font-weight:600;
+    padding:0.15rem 0.45rem;border-radius:3px;letter-spacing:0.02em;
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .sector-chip.energy{background:var(--amber-bg);color:var(--amber)}
+  .sector-chip.health{background:var(--green-bg);color:var(--green)}
+  .sector-chip.fin{background:rgba(139,92,246,0.08);color:#8b5cf6}
+  .sector-chip.staples{background:rgba(16,185,129,0.08);color:#10b981}
+  .sector-chip.comm{background:rgba(236,72,153,0.08);color:#ec4899}
+  .sector-chip.disc{background:rgba(245,158,11,0.08);color:#f59e0b}
+  .sector-chip.ind{background:rgba(107,114,128,0.08);color:var(--text-mid)}
+
+  .count-label{font-size:0.75rem;color:var(--text-dim);padding:0.6rem 0.7rem;border-top:1px solid var(--border-light)}
+
+  .footnote{font-size:0.72rem;color:var(--text-dim);margin-top:1rem;line-height:1.6;max-width:700px}
+
+  @media(max-width:640px){
+    body{padding:1.2rem 0.75rem 2rem;font-size:13px}
+    h1{font-size:1.15rem}
+    .stat-row{grid-template-columns:repeat(2,1fr)}
+    .controls{flex-direction:column}
+    .search-box{max-width:100%}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>S&P 500 · Free Cash Flow Yields</h1>
+  <div class="subtitle"><span>96</span> companies ranked by FCF / Market Cap &middot; Sep 2026</div>
+</header>
+
+<div class="stat-row" id="stats"></div>
+
+<div class="controls">
+  <input type="text" class="search-box" id="search" placeholder="Search ticker or company…">
+  <div class="pill-group" id="sectorFilter">
+    <button class="pill active" data-sector="all">All</button>
+    <button class="pill" data-sector="Technology">Tech</button>
+    <button class="pill" data-sector="Energy">Energy</button>
+    <button class="pill" data-sector="Financials">Fin</button>
+    <button class="pill" data-sector="Health Care">Health</button>
+    <button class="pill" data-sector="other">Other</button>
+  </div>
+</div>
+
+<div class="table-container">
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Ticker</th>
+          <th>Company</th>
+          <th>Sector</th>
+          <th class="num">FCF Yield</th>
+          <th class="num">FCF (TTM)</th>
+          <th class="num">Mkt Cap</th>
+          <th class="num">P/E</th>
+          <th class="num">FCF Margin</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="count-label" id="countLabel"></div>
+</div>
+
+<p class="footnote">
+  FCF Yield = trailing twelve-month free cash flow ÷ market capitalization. Data compiled from StockTitan, fffinstill Research, FCFY ETF holdings, Validea, StockAnalysis, and Alpha Vantage (Sep 2026). Financial-sector FCF margins are omitted (operating cash flow differs structurally for banks and insurers). This is not investment advice.
+</p>
+
+<script>
+const DATA = [{"ticker":"CHRD","name":"Chord Energy Corp","sector":"Energy","fcfYield":26.6,"marketCap":"$7.7B","fcf":"$2.0B","pe":"172.7","fcfMargin":"41.8%"},{"ticker":"ALK","name":"Alaska Air Group","sector":"Industrials","fcfYield":26.5,"marketCap":"$4.7B","fcf":"$1.2B","pe":"47.2","fcfMargin":"8.8%"},{"ticker":"F","name":"Ford Motor Co","sector":"Consumer Discretionary","fcfYield":25.6,"marketCap":"$48.7B","fcf":"$12.5B","pe":"N/A","fcfMargin":"6.7%"},{"ticker":"PR","name":"Permian Resources Corp","sector":"Energy","fcfYield":24.7,"marketCap":"$14.6B","fcf":"$3.6B","pe":"13.3","fcfMargin":"71.2%"},{"ticker":"GM","name":"General Motors Co","sector":"Consumer Discretionary","fcfYield":24.0,"marketCap":"$73.3B","fcf":"$17.6B","pe":"26.4","fcfMargin":"9.5%"},{"ticker":"CMCSA","name":"Comcast Corp","sector":"Communication Services","fcfYield":20.9,"marketCap":"$104.7B","fcf":"$21.9B","pe":"5.2","fcfMargin":"17.7%"},{"ticker":"COF","name":"Capital One Financial","sector":"Financials","fcfYield":20.5,"marketCap":"$127.8B","fcf":"$26.1B","pe":"14.1","fcfMargin":"—"},{"ticker":"T","name":"AT&T Inc","sector":"Communication Services","fcfYield":13.2,"marketCap":"$175.5B","fcf":"$23.2B","pe":"12.8","fcfMargin":"18.5%"},{"ticker":"CNC","name":"Centene Corp","sector":"Health Care","fcfYield":12.8,"marketCap":"$30.2B","fcf":"$3.9B","pe":"8.5","fcfMargin":"2.6%"},{"ticker":"MPC","name":"Marathon Petroleum","sector":"Energy","fcfYield":12.5,"marketCap":"$50.2B","fcf":"$6.3B","pe":"8.2","fcfMargin":"4.2%"},{"ticker":"HPQ","name":"HP Inc","sector":"Technology","fcfYield":11.8,"marketCap":"$26.4B","fcf":"$3.1B","pe":"8.7","fcfMargin":"5.8%"},{"ticker":"VLO","name":"Valero Energy","sector":"Energy","fcfYield":11.8,"marketCap":"$38.5B","fcf":"$4.5B","pe":"9.1","fcfMargin":"3.2%"},{"ticker":"SIRI","name":"Sirius XM Holdings","sector":"Communication Services","fcfYield":11.5,"marketCap":"$10.0B","fcf":"$1.1B","pe":"11.6","fcfMargin":"12.0%"},{"ticker":"SWKS","name":"Skyworks Solutions","sector":"Technology","fcfYield":11.2,"marketCap":"$13.8B","fcf":"$1.5B","pe":"12.8","fcfMargin":"28.5%"},{"ticker":"VZ","name":"Verizon Communications","sector":"Communication Services","fcfYield":10.8,"marketCap":"$192.5B","fcf":"$20.8B","pe":"10.5","fcfMargin":"15.2%"},{"ticker":"MO","name":"Altria Group","sector":"Consumer Staples","fcfYield":10.5,"marketCap":"$88.2B","fcf":"$9.3B","pe":"9.2","fcfMargin":"38.5%"},{"ticker":"PSX","name":"Phillips 66","sector":"Energy","fcfYield":10.2,"marketCap":"$46.8B","fcf":"$4.8B","pe":"10.5","fcfMargin":"3.1%"},{"ticker":"ADBE","name":"Adobe Inc","sector":"Technology","fcfYield":10.1,"marketCap":"$102.5B","fcf":"$10.3B","pe":"14.4","fcfMargin":"40.8%"},{"ticker":"DECK","name":"Deckers Outdoor Corp","sector":"Consumer Discretionary","fcfYield":10.1,"marketCap":"$10.6B","fcf":"$1.1B","pe":"11.0","fcfMargin":"19.0%"},{"ticker":"SYF","name":"Synchrony Financial","sector":"Financials","fcfYield":9.8,"marketCap":"$18.5B","fcf":"$1.8B","pe":"6.8","fcfMargin":"—"},{"ticker":"GILD","name":"Gilead Sciences","sector":"Health Care","fcfYield":9.8,"marketCap":"$125.8B","fcf":"$12.3B","pe":"12.5","fcfMargin":"42.5%"},{"ticker":"NTAP","name":"NetApp Inc","sector":"Technology","fcfYield":9.5,"marketCap":"$23.5B","fcf":"$2.2B","pe":"20.1","fcfMargin":"32.5%"},{"ticker":"DVN","name":"Devon Energy","sector":"Energy","fcfYield":9.5,"marketCap":"$22.8B","fcf":"$2.2B","pe":"7.5","fcfMargin":"14.2%"},{"ticker":"HRB","name":"H&R Block Inc","sector":"Consumer Discretionary","fcfYield":9.3,"marketCap":"$5.7B","fcf":"$0.5B","pe":"9.0","fcfMargin":"14.0%"},{"ticker":"BMY","name":"Bristol-Myers Squibb","sector":"Health Care","fcfYield":9.2,"marketCap":"$112.5B","fcf":"$10.4B","pe":"8.2","fcfMargin":"22.5%"},{"ticker":"GEN","name":"Gen Digital Inc","sector":"Technology","fcfYield":9.2,"marketCap":"$16.5B","fcf":"$1.5B","pe":"8.1","fcfMargin":"40.2%"},{"ticker":"QCOM","name":"Qualcomm Inc","sector":"Technology","fcfYield":8.7,"marketCap":"$196.2B","fcf":"$17.1B","pe":"15.6","fcfMargin":"35.2%"},{"ticker":"OMC","name":"Omnicom Group","sector":"Communication Services","fcfYield":8.5,"marketCap":"$17.8B","fcf":"$1.5B","pe":"10.2","fcfMargin":"9.8%"},{"ticker":"PFE","name":"Pfizer Inc","sector":"Health Care","fcfYield":8.5,"marketCap":"$148.2B","fcf":"$12.6B","pe":"18.5","fcfMargin":"20.8%"},{"ticker":"C","name":"Citigroup Inc","sector":"Financials","fcfYield":8.2,"marketCap":"$148.5B","fcf":"$12.2B","pe":"11.5","fcfMargin":"—"},{"ticker":"OXY","name":"Occidental Petroleum","sector":"Energy","fcfYield":8.2,"marketCap":"$38.5B","fcf":"$3.2B","pe":"12.5","fcfMargin":"11.8%"},{"ticker":"FOXA","name":"Fox Corp","sector":"Communication Services","fcfYield":8.0,"marketCap":"$21.8B","fcf":"$1.7B","pe":"11.5","fcfMargin":"12.8%"},{"ticker":"EOG","name":"EOG Resources","sector":"Energy","fcfYield":7.8,"marketCap":"$72.5B","fcf":"$5.7B","pe":"10.8","fcfMargin":"24.5%"},{"ticker":"ADM","name":"Archer-Daniels-Midland","sector":"Consumer Staples","fcfYield":7.8,"marketCap":"$22.5B","fcf":"$1.8B","pe":"11.2","fcfMargin":"2.1%"},{"ticker":"GDDY","name":"GoDaddy Inc","sector":"Technology","fcfYield":7.8,"marketCap":"$27.3B","fcf":"$2.1B","pe":"22.4","fcfMargin":"28.0%"},{"ticker":"AFL","name":"Aflac Inc","sector":"Financials","fcfYield":7.5,"marketCap":"$52.5B","fcf":"$3.9B","pe":"10.8","fcfMargin":"—"},{"ticker":"MET","name":"MetLife Inc","sector":"Financials","fcfYield":7.5,"marketCap":"$52.8B","fcf":"$4.0B","pe":"9.8","fcfMargin":"—"},{"ticker":"EXPE","name":"Expedia Group","sector":"Consumer Discretionary","fcfYield":7.5,"marketCap":"$22.5B","fcf":"$1.7B","pe":"16.2","fcfMargin":"12.8%"},{"ticker":"AMGN","name":"Amgen Inc","sector":"Health Care","fcfYield":7.2,"marketCap":"$162.5B","fcf":"$11.7B","pe":"13.5","fcfMargin":"34.8%"},{"ticker":"PRU","name":"Prudential Financial","sector":"Financials","fcfYield":7.2,"marketCap":"$42.1B","fcf":"$3.0B","pe":"8.7","fcfMargin":"—"},{"ticker":"TGT","name":"Target Corp","sector":"Consumer Discretionary","fcfYield":7.2,"marketCap":"$48.5B","fcf":"$3.5B","pe":"12.8","fcfMargin":"3.2%"},{"ticker":"CTSH","name":"Cognizant Tech Solutions","sector":"Technology","fcfYield":7.0,"marketCap":"$35.8B","fcf":"$2.5B","pe":"14.5","fcfMargin":"12.2%"},{"ticker":"ABBV","name":"AbbVie Inc","sector":"Health Care","fcfYield":6.8,"marketCap":"$332.5B","fcf":"$22.6B","pe":"14.8","fcfMargin":"38.2%"},{"ticker":"MMM","name":"3M Co","sector":"Industrials","fcfYield":6.8,"marketCap":"$72.5B","fcf":"$4.9B","pe":"15.2","fcfMargin":"15.8%"},{"ticker":"WFC","name":"Wells Fargo","sector":"Financials","fcfYield":6.8,"marketCap":"$248.5B","fcf":"$16.9B","pe":"13.2","fcfMargin":"—"},{"ticker":"DELL","name":"Dell Technologies","sector":"Technology","fcfYield":6.8,"marketCap":"$82.5B","fcf":"$5.6B","pe":"15.2","fcfMargin":"5.2%"},{"ticker":"FDX","name":"FedEx Corp","sector":"Industrials","fcfYield":6.5,"marketCap":"$55.2B","fcf":"$3.6B","pe":"14.5","fcfMargin":"4.2%"},{"ticker":"DG","name":"Dollar General","sector":"Consumer Discretionary","fcfYield":6.5,"marketCap":"$18.5B","fcf":"$1.2B","pe":"12.5","fcfMargin":"3.1%"},{"ticker":"PM","name":"Philip Morris Intl","sector":"Consumer Staples","fcfYield":6.2,"marketCap":"$235.8B","fcf":"$14.6B","pe":"18.5","fcfMargin":"39.2%"},{"ticker":"AXP","name":"American Express","sector":"Financials","fcfYield":5.8,"marketCap":"$218.5B","fcf":"$12.7B","pe":"18.5","fcfMargin":"—"},{"ticker":"CAT","name":"Caterpillar Inc","sector":"Industrials","fcfYield":5.8,"marketCap":"$182.5B","fcf":"$10.6B","pe":"16.2","fcfMargin":"15.2%"},{"ticker":"CSCO","name":"Cisco Systems","sector":"Technology","fcfYield":5.8,"marketCap":"$242.5B","fcf":"$14.1B","pe":"15.8","fcfMargin":"26.5%"},{"ticker":"COP","name":"ConocoPhillips","sector":"Energy","fcfYield":5.8,"marketCap":"$118.2B","fcf":"$6.9B","pe":"11.2","fcfMargin":"12.5%"},{"ticker":"INTU","name":"Intuit Inc","sector":"Technology","fcfYield":5.8,"marketCap":"$88.3B","fcf":"$5.1B","pe":"22.5","fcfMargin":"40.2%"},{"ticker":"UPS","name":"United Parcel Service","sector":"Industrials","fcfYield":5.8,"marketCap":"$98.5B","fcf":"$5.7B","pe":"18.2","fcfMargin":"6.2%"},{"ticker":"BAC","name":"Bank of America","sector":"Financials","fcfYield":5.5,"marketCap":"$358.2B","fcf":"$19.7B","pe":"12.8","fcfMargin":"—"},{"ticker":"IBM","name":"IBM Corp","sector":"Technology","fcfYield":5.5,"marketCap":"$242.8B","fcf":"$13.4B","pe":"25.2","fcfMargin":"20.5%"},{"ticker":"PEP","name":"PepsiCo Inc","sector":"Consumer Staples","fcfYield":5.5,"marketCap":"$192.5B","fcf":"$10.6B","pe":"18.5","fcfMargin":"14.5%"},{"ticker":"SYY","name":"Sysco Corp","sector":"Consumer Staples","fcfYield":5.5,"marketCap":"$38.5B","fcf":"$2.1B","pe":"18.5","fcfMargin":"2.8%"},{"ticker":"GS","name":"Goldman Sachs","sector":"Financials","fcfYield":5.2,"marketCap":"$202.5B","fcf":"$10.5B","pe":"14.8","fcfMargin":"—"},{"ticker":"ACN","name":"Accenture plc","sector":"Technology","fcfYield":5.2,"marketCap":"$196.5B","fcf":"$10.2B","pe":"22.8","fcfMargin":"14.5%"},{"ticker":"RTX","name":"RTX Corp","sector":"Industrials","fcfYield":5.2,"marketCap":"$178.5B","fcf":"$9.3B","pe":"18.5","fcfMargin":"12.8%"},{"ticker":"LOW","name":"Lowe's Cos","sector":"Consumer Discretionary","fcfYield":5.2,"marketCap":"$138.5B","fcf":"$7.2B","pe":"18.5","fcfMargin":"7.8%"},{"ticker":"CVX","name":"Chevron Corp","sector":"Energy","fcfYield":4.8,"marketCap":"$272.1B","fcf":"$13.1B","pe":"14.8","fcfMargin":"6.5%"},{"ticker":"EMR","name":"Emerson Electric","sector":"Industrials","fcfYield":4.8,"marketCap":"$68.5B","fcf":"$3.3B","pe":"22.5","fcfMargin":"18.2%"},{"ticker":"JNJ","name":"Johnson & Johnson","sector":"Health Care","fcfYield":4.8,"marketCap":"$408.5B","fcf":"$19.6B","pe":"15.8","fcfMargin":"22.5%"},{"ticker":"LMT","name":"Lockheed Martin","sector":"Industrials","fcfYield":4.8,"marketCap":"$128.5B","fcf":"$6.2B","pe":"17.2","fcfMargin":"8.8%"},{"ticker":"BLK","name":"BlackRock Inc","sector":"Financials","fcfYield":4.5,"marketCap":"$165.2B","fcf":"$7.4B","pe":"22.5","fcfMargin":"38.2%"},{"ticker":"DIS","name":"Walt Disney Co","sector":"Communication Services","fcfYield":4.5,"marketCap":"$202.5B","fcf":"$9.1B","pe":"22.5","fcfMargin":"9.8%"},{"ticker":"INTC","name":"Intel Corp","sector":"Technology","fcfYield":4.2,"marketCap":"$108.5B","fcf":"$4.6B","pe":"N/A","fcfMargin":"8.5%"},{"ticker":"CRM","name":"Salesforce Inc","sector":"Technology","fcfYield":4.2,"marketCap":"$282.5B","fcf":"$11.9B","pe":"28.5","fcfMargin":"32.5%"},{"ticker":"JPM","name":"JPMorgan Chase","sector":"Financials","fcfYield":4.2,"marketCap":"$782.5B","fcf":"$32.9B","pe":"12.5","fcfMargin":"—"},{"ticker":"HD","name":"Home Depot","sector":"Consumer Discretionary","fcfYield":4.2,"marketCap":"$382.5B","fcf":"$16.1B","pe":"24.5","fcfMargin":"9.8%"},{"ticker":"BKNG","name":"Booking Holdings","sector":"Consumer Discretionary","fcfYield":4.2,"marketCap":"$178.5B","fcf":"$7.5B","pe":"28.5","fcfMargin":"32.8%"},{"ticker":"PG","name":"Procter & Gamble","sector":"Consumer Staples","fcfYield":3.8,"marketCap":"$382.5B","fcf":"$14.5B","pe":"25.2","fcfMargin":"17.2%"},{"ticker":"KO","name":"Coca-Cola Co","sector":"Consumer Staples","fcfYield":3.8,"marketCap":"$312.5B","fcf":"$11.9B","pe":"25.8","fcfMargin":"24.5%"},{"ticker":"UBER","name":"Uber Technologies","sector":"Industrials","fcfYield":3.8,"marketCap":"$168.5B","fcf":"$6.4B","pe":"25.8","fcfMargin":"14.5%"},{"ticker":"TMO","name":"Thermo Fisher","sector":"Health Care","fcfYield":3.8,"marketCap":"$192.5B","fcf":"$7.3B","pe":"28.5","fcfMargin":"16.5%"},{"ticker":"WM","name":"Waste Management","sector":"Industrials","fcfYield":3.5,"marketCap":"$94.5B","fcf":"$3.3B","pe":"32.8","fcfMargin":"15.2%"},{"ticker":"XOM","name":"Exxon Mobil Corp","sector":"Energy","fcfYield":3.5,"marketCap":"$682.5B","fcf":"$23.6B","pe":"15.2","fcfMargin":"6.8%"},{"ticker":"UNH","name":"UnitedHealth Group","sector":"Health Care","fcfYield":3.5,"marketCap":"$402.5B","fcf":"$14.1B","pe":"18.5","fcfMargin":"3.5%"},{"ticker":"GE","name":"GE Aerospace","sector":"Industrials","fcfYield":3.2,"marketCap":"$234.2B","fcf":"$7.5B","pe":"32.5","fcfMargin":"18.5%"},{"ticker":"ORCL","name":"Oracle Corp","sector":"Technology","fcfYield":3.2,"marketCap":"$425.8B","fcf":"$13.6B","pe":"28.5","fcfMargin":"25.2%"},{"ticker":"META","name":"Meta Platforms","sector":"Communication Services","fcfYield":2.8,"marketCap":"$1,651B","fcf":"$46.1B","pe":"22.5","fcfMargin":"28.8%"},{"ticker":"NFLX","name":"Netflix Inc","sector":"Communication Services","fcfYield":2.8,"marketCap":"$425.2B","fcf":"$11.9B","pe":"42.5","fcfMargin":"28.5%"},{"ticker":"WMT","name":"Walmart Inc","sector":"Consumer Staples","fcfYield":2.5,"marketCap":"$748.5B","fcf":"$18.7B","pe":"35.2","fcfMargin":"2.8%"},{"ticker":"AMZN","name":"Amazon.com Inc","sector":"Consumer Discretionary","fcfYield":2.5,"marketCap":"$2,450B","fcf":"$61.2B","pe":"35.2","fcfMargin":"9.2%"},{"ticker":"AMD","name":"Advanced Micro Devices","sector":"Technology","fcfYield":2.2,"marketCap":"$225.8B","fcf":"$5.0B","pe":"28.5","fcfMargin":"18.2%"},{"ticker":"AAPL","name":"Apple Inc","sector":"Technology","fcfYield":2.0,"marketCap":"$4,836B","fcf":"$98.8B","pe":"38.2","fcfMargin":"21.2%"},{"ticker":"GOOG","name":"Alphabet Inc","sector":"Communication Services","fcfYield":1.8,"marketCap":"$4,103B","fcf":"$73.3B","pe":"22.8","fcfMargin":"19.8%"},{"ticker":"MSFT","name":"Microsoft Corp","sector":"Technology","fcfYield":1.8,"marketCap":"$3,680B","fcf":"$67.0B","pe":"32.5","fcfMargin":"28.5%"},{"ticker":"NVDA","name":"NVIDIA Corp","sector":"Technology","fcfYield":1.8,"marketCap":"$5,271B","fcf":"$96.7B","pe":"42.5","fcfMargin":"41.9%"},{"ticker":"COST","name":"Costco Wholesale","sector":"Consumer Staples","fcfYield":1.8,"marketCap":"$428.5B","fcf":"$7.7B","pe":"52.5","fcfMargin":"3.1%"},{"ticker":"AVGO","name":"Broadcom Inc","sector":"Technology","fcfYield":1.6,"marketCap":"$1,728B","fcf":"$26.9B","pe":"35.8","fcfMargin":"42.5%"},{"ticker":"LLY","name":"Eli Lilly","sector":"Health Care","fcfYield":1.2,"marketCap":"$852.5B","fcf":"$10.2B","pe":"62.5","fcfMargin":"22.5%"},{"ticker":"TSLA","name":"Tesla Inc","sector":"Consumer Discretionary","fcfYield":0.8,"marketCap":"$1,125B","fcf":"$9.0B","pe":"85.2","fcfMargin":"8.2%"}];
+
+const sectorClass = s => {
+  if(s==='Energy') return 'energy';
+  if(s==='Health Care') return 'health';
+  if(s==='Financials') return 'fin';
+  if(s==='Consumer Staples') return 'staples';
+  if(s.includes('Communication')) return 'comm';
+  if(s.includes('Discretionary')) return 'disc';
+  if(s==='Industrials') return 'ind';
+  return '';
+};
+
+const primarySectors = ['Technology','Energy','Financials','Health Care'];
+
+let sortCol = 4, sortDir = -1, filterSector = 'all', searchTerm = '';
+
+function getFiltered(){
+  let d = DATA.filter(s => {
+    if(filterSector !== 'all'){
+      if(filterSector === 'other') return !primarySectors.includes(s.sector) && s.sector !== 'Technology';
+      if(filterSector === 'Technology') return s.sector === 'Technology';
+      return s.sector === filterSector;
+    }
+    return true;
+  });
+  if(searchTerm){
+    const q = searchTerm.toLowerCase();
+    d = d.filter(s => s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+  }
+  return d;
+}
+
+function renderStats(data){
+  const avg = data.reduce((a,b)=>a+b.fcfYield,0)/data.length;
+  const med = [...data].sort((a,b)=>a.fcfYield-b.fcfYield)[Math.floor(data.length/2)]?.fcfYield||0;
+  const above8 = data.filter(s=>s.fcfYield>=8).length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Median FCF Yield</div><div class="stat-value green">${med.toFixed(1)}%</div></div>
+    <div class="stat-card"><div class="stat-label">Mean FCF Yield</div><div class="stat-value">${avg.toFixed(1)}%</div></div>
+    <div class="stat-card"><div class="stat-label">Yield ≥ 8%</div><div class="stat-value">${above8}</div></div>
+    <div class="stat-card"><div class="stat-label">Showing</div><div class="stat-value">${data.length}</div></div>
+  `;
+}
+
+function render(){
+  const data = getFiltered();
+  const cols = ['rank','ticker','name','sector','fcfYield','fcf','marketCap','pe','fcfMargin'];
+  const sortFns = [
+    null, (a,b)=>a.ticker.localeCompare(b.ticker), (a,b)=>a.name.localeCompare(b.name),
+    (a,b)=>a.sector.localeCompare(b.sector), (a,b)=>a.fcfYield-b.fcfYield,
+    (a,b)=>{const pa=parseFloat(a.fcf.replace(/[$B,]/g,''))||0;const pb=parseFloat(b.fcf.replace(/[$B,]/g,''))||0;return pa-pb},
+    (a,b)=>{const pa=parseFloat(a.marketCap.replace(/[$B,]/g,''))||0;const pb=parseFloat(b.marketCap.replace(/[$B,]/g,''))||0;return pa-pb},
+    (a,b)=>{const pa=parseFloat(a.pe)||999;const pb=parseFloat(b.pe)||999;return pa-pb},
+    (a,b)=>{const pa=parseFloat(a.fcfMargin)||0;const pb=parseFloat(b.fcfMargin)||0;return pa-pb}
+  ];
+  if(sortFns[sortCol]) data.sort((a,b)=>sortFns[sortCol](a,b)*sortDir);
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = data.map((s,i)=>{
+    const yc = s.fcfYield>=8?'high':s.fcfYield>=4?'mid':'low';
+    const sc = sectorClass(s.sector);
+    return `<tr>
+      <td class="rank">${i+1}</td>
+      <td class="ticker-col">${s.ticker}</td>
+      <td class="name-col">${s.name}</td>
+      <td><span class="sector-chip ${sc}">${s.sector.replace('Consumer ','').replace('Communication Services','Comm Svc')}</span></td>
+      <td class="yield-col ${yc}">${s.fcfYield.toFixed(1)}%</td>
+      <td class="num">${s.fcf}</td>
+      <td class="num">${s.marketCap}</td>
+      <td class="num">${s.pe}</td>
+      <td class="num">${s.fcfMargin}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('countLabel').textContent = `${data.length} of ${DATA.length} companies`;
+
+  document.querySelectorAll('thead th').forEach((th,i)=>{
+    th.classList.remove('sorted-asc','sorted-desc');
+    if(i===sortCol) th.classList.add(sortDir===1?'sorted-asc':'sorted-desc');
+  });
+
+  renderStats(data);
+}
+
+document.querySelectorAll('thead th').forEach((th,i)=>{
+  th.addEventListener('click',()=>{
+    if(sortCol===i) sortDir*=-1; else { sortCol=i; sortDir=-1; }
+    render();
+  });
+});
+
+document.getElementById('search').addEventListener('input', e=>{
+  searchTerm=e.target.value; render();
+});
+
+document.querySelectorAll('.pill').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    filterSector=btn.dataset.sector;
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>

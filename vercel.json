@@ -14,6 +14,7 @@
     { "source": "/intersection", "destination": "/intersection.html" },
     { "source": "/dgro-vig",     "destination": "/dgro-vig.html" },
     { "source": "/treasury",     "destination": "/treasury.html" },
-    { "source": "/preferreds",   "destination": "/preferreds.html" }
+    { "source": "/preferreds",   "destination": "/preferreds.html" },
+    { "source": "/sp500-fcf",    "destination": "/sp500-fcf.html" }
   ]
 }
