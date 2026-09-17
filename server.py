@@ -214,19 +214,43 @@ intersection_cache_lock = threading.Lock()
 
 def fetch_single_ticker(ticker):
     try:
+        import pandas as pd
         tk = yf.Ticker(ticker)
         fi = tk.fast_info
         price = getattr(fi, "last_price", None)
         low52 = getattr(fi, "year_low", None)
         high52 = getattr(fi, "year_high", None)
-        # Get dividend yield from info (not available in fast_info)
         info = tk.info
-        # trailingAnnualDividendYield is consistently a decimal (0.0306 = 3.06%)
         raw_yield = info.get("trailingAnnualDividendYield")
         div_yield = round(raw_yield * 100, 2) if raw_yield else None
+        raw_payout = info.get("payoutRatio")
+        payout_ratio = round(raw_payout * 100, 1) if raw_payout else None
+        # 1Y and 5Y dividend growth rates from trailing dividend history
+        div_growth_1y = None
+        div_growth_5y = None
+        try:
+            divs = tk.dividends
+            if not divs.empty:
+                now = pd.Timestamp.now(tz="UTC")
+                yr1 = now - pd.DateOffset(years=1)
+                yr2 = now - pd.DateOffset(years=2)
+                yr5 = now - pd.DateOffset(years=5)
+                yr6 = now - pd.DateOffset(years=6)
+                recent = float(divs[divs.index >= yr1].sum())
+                prior1 = float(divs[(divs.index >= yr2) & (divs.index < yr1)].sum())
+                prior5 = float(divs[(divs.index >= yr6) & (divs.index < yr5)].sum())
+                if prior1 > 0 and recent > 0:
+                    div_growth_1y = round((recent / prior1 - 1) * 100, 1)
+                if prior5 > 0 and recent > 0:
+                    div_growth_5y = round(((recent / prior5) ** (1/5) - 1) * 100, 1)
+        except Exception:
+            pass
         return ticker, {
             "price": round(price, 2) if price else None,
             "yield": div_yield,
+            "payoutRatio": payout_ratio,
+            "divGrowth1Y": div_growth_1y,
+            "divGrowth5Y": div_growth_5y,
             "fiftyTwoWeekLow": round(low52, 2) if low52 else None,
             "fiftyTwoWeekHigh": round(high52, 2) if high52 else None,
         }
@@ -268,6 +292,9 @@ def fetch_fund_data(holdings_list, fund_cache, fund_cache_lock):
                 "weight": holding["weight"],
                 "price": info["price"],
                 "yield": info["yield"],
+                "payoutRatio": info.get("payoutRatio"),
+                "divGrowth1Y": info.get("divGrowth1Y"),
+                "divGrowth5Y": info.get("divGrowth5Y"),
                 "fiftyTwoWeekLow": info["fiftyTwoWeekLow"],
                 "fiftyTwoWeekHigh": info["fiftyTwoWeekHigh"],
                 "varianceFromLow": variance,
@@ -280,6 +307,8 @@ def fetch_fund_data(holdings_list, fund_cache, fund_cache_lock):
                 "weight": holding["weight"],
                 "price": None,
                 "yield": None,
+                "payoutRatio": None,
+                "divGrowth1Y": None,
                 "fiftyTwoWeekLow": None,
                 "fiftyTwoWeekHigh": None,
                 "varianceFromLow": None,
@@ -360,6 +389,9 @@ def fetch_intersection_data():
                 "schdWeight":      holding["schdWeight"],
                 "price":           info["price"],
                 "yield":           info["yield"],
+                "payoutRatio":     info.get("payoutRatio"),
+                "divGrowth1Y":     info.get("divGrowth1Y"),
+                "divGrowth5Y":     info.get("divGrowth5Y"),
                 "fiftyTwoWeekLow": info["fiftyTwoWeekLow"],
                 "fiftyTwoWeekHigh":info["fiftyTwoWeekHigh"],
                 "varianceFromLow": variance,
@@ -372,6 +404,8 @@ def fetch_intersection_data():
                 "schdWeight":      holding["schdWeight"],
                 "price":           None,
                 "yield":           None,
+                "payoutRatio":     None,
+                "divGrowth1Y":     None,
                 "fiftyTwoWeekLow": None,
                 "fiftyTwoWeekHigh":None,
                 "varianceFromLow": None,
